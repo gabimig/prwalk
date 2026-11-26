@@ -72,6 +72,11 @@ export function configPath(home: string): string {
   return join(home, 'config.json');
 }
 
+/** `<home>/preferences.md`: the user's preferences for walkthroughs, in plain words. Only the CLI reads it. */
+export function preferencesPath(home: string): string {
+  return join(home, 'preferences.md');
+}
+
 /** The configuration; empty when the file is missing. Throws, saying how to fix it, if invalid. */
 export function readConfig(home: string): Config {
   const path = configPath(home);
