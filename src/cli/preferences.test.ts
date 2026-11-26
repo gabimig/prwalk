@@ -28,6 +28,11 @@ describe('preferences', () => {
       created: false,
     });
     expect(readFileSync(path, 'utf8')).toBe('Always start with the key files.\n');
+
+    chmodSync(path, 0o200);
+    expect(() => readPreferences(home)).toThrow(/EACCES/);
+    chmodSync(path, 0o600);
+    expect(readFileSync(path, 'utf8')).toBe('Always start with the key files.\n');
   });
 
   it('resets the file to the defaults, keeping the previous one, if any, as a backup', () => {
