@@ -1,0 +1,10 @@
+{
+  "description": "A voice for the tests: a short silent wav.",
+  "languages": ["es", "en"],
+  "downloadMB": 1,
+  "licenses": [{ "part": "The fake model", "license": "MIT" }],
+  "dependencies": { "fake-engine": "1.0.0" },
+  "overrides": { "fake-native": "1.0.0" },
+  "model": "https://example.invalid/fake-model.tar.bz2",
+  "test": { "text": "This is a test.", "lang": "en" }
+}

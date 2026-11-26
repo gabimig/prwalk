@@ -1,0 +1,25 @@
+{
+  "description": "Kokoro-82M v1.0 on the sherpa-onnx engine: natural Spanish and English, on the CPU, nothing leaves the machine.",
+  "languages": ["es", "en"],
+  "downloadMB": 385,
+  "licenses": [
+    { "part": "Kokoro-82M v1.0 model and voices", "license": "Apache-2.0" },
+    { "part": "sherpa-onnx-node 1.13.8 (the engine)", "license": "Apache-2.0" },
+    { "part": "onnxruntime (inside the engine)", "license": "MIT" },
+    {
+      "part": "espeak-ng and espeak-ng-data (text to phonemes, inside the engine and the model)",
+      "license": "GPL-3.0-or-later"
+    }
+  ],
+  "dependencies": { "sherpa-onnx-node": "1.13.8" },
+  "overrides": {
+    "sherpa-onnx-darwin-arm64": "1.13.8",
+    "sherpa-onnx-darwin-x64": "1.13.8",
+    "sherpa-onnx-linux-arm64": "1.13.8",
+    "sherpa-onnx-linux-x64": "1.13.8",
+    "sherpa-onnx-win-ia32": "1.13.8",
+    "sherpa-onnx-win-x64": "1.13.8"
+  },
+  "model": "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/kokoro-multi-lang-v1_0.tar.bz2",
+  "test": { "text": "This is a test of the prwalk voice.", "lang": "en" }
+}

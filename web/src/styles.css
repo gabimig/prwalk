@@ -1,0 +1,671 @@
+/* Colours and shapes follow prototype/index.html. */
+:root {
+  --bg: #ffffff;
+  --bg-soft: #f6f8fa;
+  --bg-inset: #eef1f4;
+  --fg: #1f2328;
+  --fg-muted: #656d76;
+  --border: #d0d7de;
+  --accent: #0969da;
+  --accent-soft: #ddf4ff;
+  --add-num: #ccffd8;
+  --add-fg: #1a7f37;
+  --del-num: #ffd7d5;
+  --del-fg: #cf222e;
+  --focus: #bf8700;
+  --shadow: 0 8px 24px rgba(31, 35, 40, 0.12);
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d1117;
+    --bg-soft: #161b22;
+    --bg-inset: #1c2128;
+    --fg: #e6edf3;
+    --fg-muted: #8b949e;
+    --border: #30363d;
+    --accent: #58a6ff;
+    --accent-soft: #10263f;
+    --add-num: #1a4428;
+    --add-fg: #56d364;
+    --del-num: #542426;
+    --del-fg: #f85149;
+    --focus: #e3b341;
+    --shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  }
+}
+* {
+  box-sizing: border-box;
+}
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font: 14px / 1.5 var(--sans);
+  overflow: hidden;
+}
+#root {
+  display: flex;
+  flex-direction: column;
+}
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+code {
+  font: 0.92em var(--mono);
+}
+
+/* Header */
+header {
+  flex: none;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-soft);
+  min-width: 0;
+}
+.pr-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  flex-wrap: wrap;
+  overflow-wrap: anywhere;
+}
+.pr-title .num {
+  color: var(--fg-muted);
+  font-weight: 400;
+}
+.pr-meta {
+  color: var(--fg-muted);
+  font-size: 12px;
+  margin-top: 2px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.branch {
+  font-family: var(--mono);
+  background: var(--accent-soft);
+  color: var(--accent);
+  padding: 0 6px;
+  border-radius: 6px;
+  overflow-wrap: anywhere;
+}
+.plus {
+  color: var(--add-fg);
+}
+.minus {
+  color: var(--del-fg);
+}
+
+/* Main area */
+main {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+}
+.notice {
+  margin: 48px auto;
+  padding: 0 16px;
+  max-width: 480px;
+  text-align: center;
+  color: var(--fg-muted);
+}
+
+/* File list */
+.files {
+  list-style: none;
+  margin: 0;
+  padding: 12px 16px;
+  display: grid;
+  gap: 6px;
+}
+.files button {
+  width: 100%;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  text-align: left;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-soft);
+  min-width: 0;
+}
+.files button:hover {
+  border-color: var(--accent);
+}
+.files button:focus-visible,
+.back:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.files .path {
+  flex: 1;
+  min-width: 0;
+  font: 12.5px var(--mono);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.files .counts {
+  flex: none;
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+
+/* One file */
+.file {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  animation: appear 0.3s ease-out;
+}
+@keyframes appear {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.file-head {
+  flex: none;
+  background: var(--bg-soft);
+  border-bottom: 1px solid var(--border);
+  padding: 6px 16px;
+  font: 12px var(--mono);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+}
+.file-head .path {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.file-head .from,
+.file-head .lines {
+  font-family: var(--sans);
+  color: var(--fg-muted);
+  white-space: nowrap;
+}
+/* In a narrow panel the old path gives way first, so the path and the range stay readable. */
+.file-head .from {
+  min-width: 0;
+  flex-shrink: 4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.file-head .lines {
+  flex: none;
+  margin-left: auto;
+}
+.file-head .note {
+  margin-left: auto;
+  min-width: 0;
+  flex-shrink: 2;
+  font-family: var(--sans);
+  color: var(--fg-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.file-head .note + .lines {
+  margin-left: 0;
+}
+.back {
+  flex: none;
+  font-family: var(--sans);
+  font-size: 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  padding: 0 8px;
+}
+.tag {
+  flex: none;
+  font-family: var(--sans);
+  font-size: 11px;
+  border-radius: 4px;
+  padding: 0 6px;
+  background: var(--bg-inset);
+  color: var(--fg-muted);
+}
+.tag.added {
+  background: var(--add-num);
+  color: var(--add-fg);
+}
+.tag.deleted {
+  background: var(--del-num);
+  color: var(--del-fg);
+}
+.code {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+.empty {
+  margin: 24px 16px;
+  color: var(--fg-muted);
+}
+
+/* Connection notice */
+.connection {
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  max-width: calc(100% - 24px);
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-soft);
+  color: var(--fg-muted);
+  font-size: 12px;
+}
+
+.badge {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0 8px;
+}
+
+/* Playback: the player's parts are laid out by #root, as in task 03. */
+.player {
+  display: contents;
+}
+
+/* Step strip */
+nav {
+  flex: none;
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+nav::-webkit-scrollbar {
+  display: none;
+}
+.steps {
+  display: flex;
+  gap: 6px;
+  padding: 8px 16px;
+  margin: 0;
+  list-style: none;
+  width: max-content;
+}
+.step {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--fg-muted);
+  font-size: 12px;
+  white-space: nowrap;
+  background: none;
+}
+.step:not(.current):hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.step .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--border);
+}
+.step.done {
+  color: var(--fg);
+}
+.step.done .dot {
+  background: var(--add-fg);
+}
+.step.current {
+  color: var(--bg);
+  background: var(--accent);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+.step.current .dot {
+  background: var(--bg);
+}
+
+/* Cards: summary, tests, end */
+.card {
+  width: 100%;
+  max-width: 680px;
+  margin: 24px auto;
+  padding: 0 16px;
+  animation: appear 0.3s ease-out;
+}
+.card h2 {
+  font-size: 20px;
+  margin: 0 0 4px;
+}
+.card .lead {
+  color: var(--fg-muted);
+  margin: 0 0 16px;
+}
+.card ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+.card li {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--bg-soft);
+  overflow-wrap: anywhere;
+}
+.card li b {
+  display: block;
+}
+.card li span {
+  color: var(--fg-muted);
+  font-size: 13px;
+}
+.card li code {
+  font: 12px var(--mono);
+}
+
+/* Start card and the notice of a tab that was superseded */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(3px);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+.overlay .box {
+  max-width: 380px;
+  text-align: center;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: var(--shadow);
+}
+.overlay h2 {
+  margin: 0 0 6px;
+  font-size: 17px;
+}
+.overlay p {
+  margin: 0 0 16px;
+  color: var(--fg-muted);
+  font-size: 13px;
+}
+.overlay p:last-child {
+  margin-bottom: 0;
+}
+.overlay button {
+  background: var(--accent);
+  color: #fff;
+  border: 0;
+  border-radius: 8px;
+  padding: 8px 18px;
+  font-weight: 600;
+}
+
+/* Bottom bar */
+footer {
+  flex: none;
+  border-top: 1px solid var(--border);
+  background: var(--bg-soft);
+}
+.progress {
+  height: 3px;
+  background: var(--bg-inset);
+}
+.progress i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.4s;
+}
+.bar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 16px;
+}
+.transport {
+  flex: none;
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.transport button {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid transparent;
+  background: none;
+  display: grid;
+  place-items: center;
+  color: var(--fg-muted);
+}
+.transport button:hover {
+  background: var(--bg-inset);
+  color: var(--fg);
+}
+.transport svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+.transport .toggle {
+  width: 44px;
+  height: 44px;
+  margin: 0 4px;
+  border-color: var(--border);
+  background: var(--bg);
+  color: var(--fg);
+}
+.transport .toggle:hover {
+  border-color: var(--accent);
+  background: var(--bg);
+}
+@media (max-width: 640px) {
+  .bar {
+    flex-wrap: wrap;
+  }
+  .transport {
+    width: 100%;
+    justify-content: center;
+  }
+}
+.subtitle {
+  flex: 1;
+  min-height: 42px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+.who {
+  font-size: 11px;
+  color: var(--fg-muted);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.log {
+  max-height: 92px;
+  overflow-y: auto;
+  margin-top: 2px;
+  padding-right: 8px;
+}
+.log h3 {
+  margin: 8px 0 2px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--fg-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.log section:first-child h3 {
+  margin-top: 0;
+}
+.log p {
+  margin: 0 0 4px;
+  font-size: 14px;
+  color: var(--fg-muted);
+}
+.log p.now {
+  color: var(--fg);
+}
+.player.paused .log {
+  max-height: 40vh;
+}
+.player.paused .log p {
+  color: var(--fg);
+}
+.player.paused .log p.now {
+  box-shadow: inset 2px 0 0 var(--focus);
+  padding-left: 8px;
+}
+.eq {
+  display: inline-flex;
+  gap: 2px;
+  align-items: flex-end;
+  height: 10px;
+}
+.eq i {
+  width: 2px;
+  height: 3px;
+  background: var(--accent);
+  animation: eq 0.8s infinite ease-in-out;
+}
+.eq i:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.eq i:nth-child(3) {
+  animation-delay: 0.4s;
+}
+@keyframes eq {
+  0%,
+  100% {
+    height: 3px;
+  }
+  50% {
+    height: 10px;
+  }
+}
+.player.paused .eq i {
+  animation-play-state: paused;
+}
+kbd {
+  font: 11px var(--mono);
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  padding: 0 5px;
+  background: var(--bg);
+}
+.hint {
+  flex: none;
+  font-size: 11px;
+  color: var(--fg-muted);
+  white-space: nowrap;
+}
+@media (max-width: 520px) {
+  .hint {
+    display: none;
+  }
+}
+
+.step:focus-visible,
+.transport button:focus-visible,
+.overlay button:focus-visible,
+.log:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* An answer from the agent (prwalk say): told apart from the script's steps and narration. */
+.file-head .aside-tag {
+  flex: none;
+  font-family: var(--sans);
+  font-weight: 600;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.log .answer {
+  margin: 4px 0 6px;
+  padding: 2px 0 2px 10px;
+  border-left: 2px solid var(--accent);
+}
+.log .answer .question,
+.log .answer .reply {
+  margin: 0 0 2px;
+}
+.log .answer .question {
+  font-size: 12px;
+  font-style: italic;
+  color: var(--fg-muted);
+}
+.log .answer .reply,
+.player.paused .log .answer .reply {
+  color: var(--accent);
+}
+.aside-bar {
+  position: fixed;
+  left: 12px;
+  bottom: 12px;
+  max-width: calc(100% - 24px);
+  padding: 6px 12px;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  background: var(--accent-soft);
+  color: var(--fg);
+  font-size: 14px;
+}
+.aside-bar button {
+  margin-right: 8px;
+}
+
+/* The voice and speed menus, in place of the voice badge. */
+.badge.picker {
+  display: inline-flex;
+  gap: 4px;
+  padding: 0 4px;
+}
+
+.badge.picker select {
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: none;
+  padding: 0 2px;
+  max-width: 16em;
+  cursor: pointer;
+}

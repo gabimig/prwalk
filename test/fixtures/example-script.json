@@ -1,0 +1,172 @@
+{
+  "version": 1,
+  "lang": "es",
+  "level": "key-files",
+  "steps": [
+    {
+      "id": "overview",
+      "title": "Resumen",
+      "card": {
+        "heading": "Qué hace esta PR",
+        "lead": "Limita los intentos fallidos de login por correo.",
+        "items": [
+          {
+            "title": "src/auth/rateLimiter.ts",
+            "text": "Nueva clase que cuenta fallos y decide si un correo está bloqueado."
+          },
+          {
+            "title": "src/auth/loginController.ts",
+            "text": "Consulta el límite antes de verificar y registra cada fallo."
+          },
+          {
+            "title": "src/config/auth.ts",
+            "text": "Máximo de intentos y duración de la ventana."
+          },
+          {
+            "title": "test/auth/rateLimiter.test.ts",
+            "text": "Tests unitarios de la clase nueva."
+          }
+        ]
+      },
+      "say": [
+        "Esta PR añade un límite de intentos al login.",
+        "Son cuatro ficheros: una clase nueva que cuenta los fallos, el controlador de login que la usa, dos valores de configuración y los tests.",
+        "Vamos a verlos en ese orden."
+      ]
+    },
+    {
+      "id": "limiter-structure",
+      "title": "rateLimiter · estructura",
+      "note": "La pieza nueva",
+      "focus": {
+        "file": "src/auth/rateLimiter.ts",
+        "lines": [4, 10]
+      },
+      "say": [
+        "Empezamos por la clase nueva, LoginRateLimiter.",
+        "Recibe un almacén clave-valor y expone tres operaciones.",
+        "La primera, isBlocked, lee el contador de ese correo y lo compara con el máximo configurado."
+      ]
+    },
+    {
+      "id": "limiter-failures",
+      "title": "rateLimiter · contar fallos",
+      "note": "Dónde se cuenta",
+      "focus": {
+        "file": "src/auth/rateLimiter.ts",
+        "lines": [12, 18]
+      },
+      "say": [
+        "Aquí está la lógica central.",
+        "Cada fallo incrementa el contador, y solo en el primer fallo se le pone caducidad.",
+        "Eso significa que la ventana empieza con el primer intento fallido y no se alarga con los siguientes."
+      ]
+    },
+    {
+      "id": "controller-block",
+      "title": "loginController · bloqueo",
+      "note": "Dónde se aplica",
+      "focus": {
+        "file": "src/auth/loginController.ts",
+        "lines": [15, 17]
+      },
+      "say": [
+        "Ahora el controlador.",
+        "La comprobación va antes de buscar al usuario y antes de verificar la contraseña.",
+        "Si el correo está bloqueado se responde 429 y no se toca nada más."
+      ]
+    },
+    {
+      "id": "controller-failure-success",
+      "title": "loginController · fallo y éxito",
+      "note": "Registro y reinicio",
+      "focus": {
+        "file": "src/auth/loginController.ts",
+        "lines": [20, 26]
+      },
+      "say": [
+        "El if original se ha partido en dos para poder registrar el fallo antes de devolver el 401.",
+        "Fíjate en que se registra tanto si el usuario no existe como si la contraseña es incorrecta.",
+        "Así no se puede usar el límite para averiguar qué correos existen.",
+        {
+          "text": "Y cuando el login va bien, el contador se reinicia.",
+          "lines": [26, 26]
+        },
+        "El reinicio va antes de crear la sesión, así que un fallo al crearla no deja el contador sucio."
+      ]
+    },
+    {
+      "id": "config",
+      "title": "Configuración",
+      "note": "Valores por defecto",
+      "focus": {
+        "file": "src/config/auth.ts",
+        "lines": [6, 7]
+      },
+      "say": [
+        "La configuración añade dos valores, leídos de variables de entorno.",
+        "Por defecto son cinco intentos en una ventana de quince minutos."
+      ]
+    },
+    {
+      "id": "tests",
+      "title": "Tests",
+      "card": {
+        "heading": "Tests",
+        "lead": "test/auth/rateLimiter.test.ts · 4 casos nuevos",
+        "items": [
+          {
+            "title": "bloquea tras el máximo de intentos",
+            "text": "Cinco fallos seguidos y isBlocked devuelve true."
+          },
+          {
+            "title": "no bloquea por debajo del máximo",
+            "text": "Cuatro fallos y sigue pudiendo intentarlo."
+          },
+          {
+            "title": "la ventana caduca",
+            "text": "Avanza el reloj quince minutos y el contador desaparece."
+          },
+          {
+            "title": "reset limpia el contador",
+            "text": "Tras un login correcto se vuelve a cero."
+          },
+          {
+            "title": "Sin cubrir",
+            "text": "Ningún test del controlador comprueba la respuesta 429."
+          }
+        ]
+      },
+      "say": [
+        "Por último, los tests. Hay un fichero nuevo con cuatro casos.",
+        "Cubren el bloqueo al llegar al máximo, la caducidad de la ventana y el reinicio tras un login correcto.",
+        "No hay ningún test del controlador que compruebe la respuesta 429."
+      ]
+    },
+    {
+      "id": "end",
+      "title": "Fin",
+      "card": {
+        "heading": "Fin del recorrido",
+        "lead": "El agente sigue disponible en el chat.",
+        "items": [
+          {
+            "title": "«Vuelve al controlador»",
+            "text": "Salta a ese paso y lo repite."
+          },
+          {
+            "title": "«¿Qué pasa si el almacén se cae?»",
+            "text": "Responde y, si hace falta, enseña el código."
+          },
+          {
+            "title": "«Ahora el recorrido completo»",
+            "text": "Genera un guion nuevo con más detalle."
+          }
+        ]
+      },
+      "say": [
+        "Eso es todo. Pregúntame en el chat lo que quieras, o pídeme que vuelva a cualquier paso."
+      ]
+    }
+  ]
+}

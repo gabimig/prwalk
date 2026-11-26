@@ -1,0 +1,109 @@
+diff --git a/src/auth/rateLimiter.ts b/src/auth/rateLimiter.ts
+new file mode 100644
+index 0000000..3b18e51
+--- /dev/null
++++ b/src/auth/rateLimiter.ts
+@@ -0,0 +1,27 @@
++import { Store } from '../store';
++import { authConfig } from '../config/auth';
++
++export class LoginRateLimiter {
++  constructor(private store: Store) {}
++
++  async isBlocked(email: string): Promise<boolean> {
++    const attempts = await this.store.get(this.key(email));
++    return Number(attempts ?? 0) >= authConfig.maxAttempts;
++  }
++
++  async registerFailure(email: string): Promise<void> {
++    const key = this.key(email);
++    const attempts = await this.store.incr(key);
++    if (attempts === 1) {
++      await this.store.expire(key, authConfig.windowSeconds);
++    }
++  }
++
++  async reset(email: string): Promise<void> {
++    await this.store.del(this.key(email));
++  }
++
++  private key(email: string) {
++    return `login:attempts:${email.toLowerCase()}`;
++  }
++}
+diff --git a/src/auth/loginController.ts b/src/auth/loginController.ts
+index 8c1d2a4..5e7f9b0 100644
+--- a/src/auth/loginController.ts
++++ b/src/auth/loginController.ts
+@@ -12,11 +12,18 @@
+ export async function login(req: Request, res: Response) {
+   const { email, password } = req.body;
+ 
++  if (await limiter.isBlocked(email)) {
++    return res.status(429).json({ error: 'too_many_attempts' });
++  }
++
+   const user = await users.findByEmail(email);
+-  if (!user || !(await verify(password, user.hash))) {
+-    return res.status(401).json({ error: 'invalid_credentials' });
+-  }
++  const valid = user && (await verify(password, user.hash));
++  if (!valid) {
++    await limiter.registerFailure(email);
++    return res.status(401).json({ error: 'invalid_credentials' });
++  }
+ 
++  await limiter.reset(email);
+   const session = await sessions.create(user.id);
+   return res.json({ token: session.token });
+ }
+diff --git a/src/config/auth.ts b/src/config/auth.ts
+index 1a2b3c4..4d5e6f7 100644
+--- a/src/config/auth.ts
++++ b/src/config/auth.ts
+@@ -3,4 +3,6 @@
+ export const authConfig = {
+   sessionTtlSeconds: 60 * 60 * 8,
+-  passwordMinLength: 10,
++  passwordMinLength: 10,
++  maxAttempts: Number(process.env.LOGIN_MAX_ATTEMPTS ?? 5),
++  windowSeconds: Number(process.env.LOGIN_WINDOW_SECONDS ?? 900),
+ };
+diff --git a/test/auth/rateLimiter.test.ts b/test/auth/rateLimiter.test.ts
+new file mode 100644
+index 0000000..9f8e7d6
+--- /dev/null
++++ b/test/auth/rateLimiter.test.ts
+@@ -0,0 +1,32 @@
++import { describe, expect, it } from 'vitest';
++import { LoginRateLimiter } from '../../src/auth/rateLimiter';
++import { memoryStore } from '../helpers/memoryStore';
++
++describe('LoginRateLimiter', () => {
++  it('blocks after the maximum number of attempts', async () => {
++    const limiter = new LoginRateLimiter(memoryStore());
++    for (let i = 0; i < 5; i++) await limiter.registerFailure('a@example.com');
++    expect(await limiter.isBlocked('a@example.com')).toBe(true);
++  });
++
++  it('does not block below the maximum', async () => {
++    const limiter = new LoginRateLimiter(memoryStore());
++    for (let i = 0; i < 4; i++) await limiter.registerFailure('a@example.com');
++    expect(await limiter.isBlocked('a@example.com')).toBe(false);
++  });
++
++  it('forgets the attempts when the window expires', async () => {
++    const store = memoryStore();
++    const limiter = new LoginRateLimiter(store);
++    for (let i = 0; i < 5; i++) await limiter.registerFailure('a@example.com');
++    store.advance(15 * 60);
++    expect(await limiter.isBlocked('a@example.com')).toBe(false);
++  });
++
++  it('resets the counter', async () => {
++    const limiter = new LoginRateLimiter(memoryStore());
++    for (let i = 0; i < 5; i++) await limiter.registerFailure('a@example.com');
++    await limiter.reset('a@example.com');
++    expect(await limiter.isBlocked('a@example.com')).toBe(false);
++  });
++});

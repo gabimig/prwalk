@@ -1,0 +1,70 @@
+{
+  "name": "prwalk",
+  "version": "0.1.0",
+  "description": "Spoken, guided walkthroughs of pull requests, driven by a coding agent.",
+  "keywords": [
+    "pull-request",
+    "code-review",
+    "walkthrough",
+    "diff",
+    "text-to-speech",
+    "cli",
+    "agent",
+    "github"
+  ],
+  "license": "GPL-3.0-or-later",
+  "homepage": "https://github.com/gabimig/prwalk#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gabimig/prwalk.git"
+  },
+  "bugs": {
+    "url": "https://github.com/gabimig/prwalk/issues"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "packageManager": "pnpm@11.5.2",
+  "bin": {
+    "prwalk": "dist/cli/index.js"
+  },
+  "files": [
+    "dist",
+    "examples",
+    "skill",
+    "voices",
+    "test/fixtures/example.diff",
+    "test/fixtures/example-script.json",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && vite build --config web/vite.config.ts",
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p web",
+    "test": "vitest run",
+    "test:e2e": "pnpm run --silent build && playwright test",
+    "test:pack": "pnpm run --silent build && node scripts/check-pack.mjs"
+  },
+  "dependencies": {
+    "@pierre/diffs": "^1.7.1",
+    "commander": "^15.1.0",
+    "ws": "^8.23.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.6.8",
+    "@playwright/test": "^1.65.1",
+    "@types/node": "^22.20.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@types/ws": "^8.18.2",
+    "@vitejs/plugin-react": "^6.3.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8",
+    "vitest": "^5.1.1"
+  }
+}

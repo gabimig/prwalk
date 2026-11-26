@@ -1,0 +1,62 @@
+name: Release
+
+# Publishes a GitHub release for a tag vX.Y.Z with the packed prwalk, built and checked here:
+# prwalk-X.Y.Z.tgz and the same file as prwalk.tgz, which the README installs from
+# https://github.com/gabimig/prwalk/releases/latest/download/prwalk.tgz. Nothing goes to npm.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: An existing tag to release again, such as v0.1.0
+        required: true
+
+permissions: {}
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
+      COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ env.TAG }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: corepack enable
+      - name: Check that the tag is the version in package.json
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          if [ "v$version" != "$TAG" ]; then
+            echo "::error::The tag $TAG does not match the version $version in package.json."
+            exit 1
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm test:pack
+      - run: pnpm build
+      - name: Pack
+        run: |
+          mkdir release
+          pnpm pack --pack-destination release
+          cp "release/prwalk-$VERSION.tgz" release/prwalk.tgz
+      - name: Publish the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          files=("release/prwalk-$VERSION.tgz" release/prwalk.tgz)
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "${files[@]}" --clobber
+          else
+            gh release create "$TAG" "${files[@]}" --verify-tag --title "prwalk $VERSION" --generate-notes
+          fi

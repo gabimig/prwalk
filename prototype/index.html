@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PR Walkthrough · prototipo</title>
+<style>
+  :root {
+    --bg: #ffffff; --bg-soft: #f6f8fa; --bg-inset: #eef1f4;
+    --fg: #1f2328; --fg-muted: #656d76; --border: #d0d7de;
+    --accent: #0969da; --accent-soft: #ddf4ff;
+    --add-bg: #e6ffec; --add-num: #ccffd8; --add-fg: #1a7f37;
+    --del-bg: #ffebe9; --del-num: #ffd7d5; --del-fg: #cf222e;
+    --focus: #bf8700; --focus-bg: rgba(255, 212, 0, .16);
+    --shadow: 0 8px 24px rgba(31, 35, 40, .12);
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d1117; --bg-soft: #161b22; --bg-inset: #1c2128;
+      --fg: #e6edf3; --fg-muted: #8b949e; --border: #30363d;
+      --accent: #58a6ff; --accent-soft: #10263f;
+      --add-bg: #12261e; --add-num: #1a4428; --add-fg: #56d364;
+      --del-bg: #2a1518; --del-num: #542426; --del-fg: #f85149;
+      --focus: #e3b341; --focus-bg: rgba(227, 179, 65, .14);
+      --shadow: 0 8px 24px rgba(0, 0, 0, .5);
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg); color: var(--fg); font: 14px/1.5 var(--sans);
+    display: grid; grid-template-rows: auto auto 1fr auto; overflow: hidden;
+  }
+  button { font: inherit; color: inherit; cursor: pointer; }
+
+  /* Cabecera */
+  header { padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--bg-soft); }
+  .pr-title { font-size: 15px; font-weight: 600; margin: 0; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+  .pr-title .num { color: var(--fg-muted); font-weight: 400; }
+  .pr-meta { color: var(--fg-muted); font-size: 12px; margin-top: 2px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .branch { font-family: var(--mono); background: var(--accent-soft); color: var(--accent); padding: 0 6px; border-radius: 6px; }
+  .plus { color: var(--add-fg); } .minus { color: var(--del-fg); }
+  .badge { border: 1px solid var(--border); border-radius: 999px; padding: 0 8px; }
+
+  /* Pasos */
+  nav { border-bottom: 1px solid var(--border); overflow-x: auto; scrollbar-width: none; }
+  nav::-webkit-scrollbar { display: none; }
+  .steps { display: flex; gap: 6px; padding: 8px 16px; margin: 0; list-style: none; width: max-content; }
+  .step {
+    display: flex; gap: 6px; align-items: center; padding: 3px 10px; border-radius: 999px;
+    border: 1px solid var(--border); color: var(--fg-muted); font-size: 12px; white-space: nowrap;
+    background: none;
+  }
+  .step:not(.current):hover { border-color: var(--accent); color: var(--accent); }
+  .step:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .step .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border); }
+  .step.done { color: var(--fg); } .step.done .dot { background: var(--add-fg); }
+  .step.current { color: var(--bg); background: var(--accent); border-color: var(--accent); font-weight: 600; }
+  .step.current .dot { background: var(--bg); }
+
+  /* Zona principal */
+  main { overflow: auto; position: relative; scroll-behavior: smooth; }
+  .file-head {
+    position: sticky; top: 0; z-index: 2; background: var(--bg-soft); border-bottom: 1px solid var(--border);
+    padding: 6px 16px; font: 12px var(--mono); display: flex; gap: 8px; align-items: center;
+  }
+  .file-head .tag { font-family: var(--sans); font-size: 11px; border-radius: 4px; padding: 0 6px; }
+  .tag.new { background: var(--add-num); color: var(--add-fg); }
+  .tag.mod { background: var(--bg-inset); color: var(--fg-muted); }
+  .file-head .why { margin-left: auto; font-family: var(--sans); color: var(--fg-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  table.diff { border-collapse: collapse; width: 100%; font: 12.5px/20px var(--mono); }
+  .diff td { padding: 0 8px; white-space: pre; vertical-align: top; }
+  .diff .n { width: 1%; min-width: 38px; text-align: right; color: var(--fg-muted); user-select: none; }
+  .diff .s { width: 1%; padding: 0 4px; user-select: none; }
+  .diff tr { transition: opacity .35s, background-color .35s; }
+  .diff tr.add { background: var(--add-bg); } .diff tr.add .n { background: var(--add-num); } .diff tr.add .s { color: var(--add-fg); }
+  .diff tr.del { background: var(--del-bg); } .diff tr.del .n { background: var(--del-num); } .diff tr.del .s { color: var(--del-fg); }
+  .diff.focused tr:not(.hl) { opacity: .32; }
+  .diff tr.hl td:first-child { box-shadow: inset 3px 0 0 var(--focus); }
+  .diff tr.hl td.c { background-image: linear-gradient(var(--focus-bg), var(--focus-bg)); }
+  .diff tr.hl-first td { border-top: 1px solid var(--focus); }
+  .diff tr.hl-last td { border-bottom: 1px solid var(--focus); }
+
+  /* Tarjetas (resumen / tests / fin) */
+  .card { max-width: 680px; margin: 24px auto; padding: 0 16px; }
+  .card h2 { font-size: 20px; margin: 0 0 4px; }
+  .card .lead { color: var(--fg-muted); margin: 0 0 16px; }
+  .card ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+  .card li {
+    border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; background: var(--bg-soft);
+    transition: border-color .3s, box-shadow .3s, opacity .3s;
+  }
+  .card li b { display: block; }
+  .card li span { color: var(--fg-muted); font-size: 13px; }
+  .card li code { font: 12px var(--mono); }
+  .card.focused li:not(.hl) { opacity: .45; }
+  .card li.hl { border-color: var(--focus); box-shadow: inset 3px 0 0 var(--focus); }
+
+  /* Barra inferior */
+  footer { border-top: 1px solid var(--border); background: var(--bg-soft); }
+  .progress { height: 3px; background: var(--bg-inset); }
+  .progress i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .4s; }
+  .bar { display: flex; gap: 12px; align-items: center; padding: 10px 16px; }
+  .transport { flex: none; display: flex; gap: 4px; align-items: center; }
+  .transport button {
+    flex: none; width: 36px; height: 36px; border-radius: 50%; border: 1px solid transparent;
+    background: none; display: grid; place-items: center; color: var(--fg-muted);
+  }
+  .transport button:hover { background: var(--bg-inset); color: var(--fg); }
+  .transport button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .transport svg { width: 18px; height: 18px; fill: currentColor; }
+  .transport #pause { width: 44px; height: 44px; margin: 0 4px; border-color: var(--border); background: var(--bg); color: var(--fg); }
+  .transport #pause:hover { border-color: var(--accent); background: var(--bg); }
+  @media (max-width: 640px) {
+    .bar { flex-wrap: wrap; }
+    .transport { width: 100%; justify-content: center; }
+  }
+  .subtitle { flex: 1; min-height: 42px; display: flex; flex-direction: column; justify-content: center; min-width: 0; }
+  .subtitle .who { font-size: 11px; color: var(--fg-muted); display: flex; gap: 8px; align-items: center; }
+  .log { max-height: 92px; overflow-y: auto; margin-top: 2px; padding-right: 8px; }
+  .log h3 { margin: 8px 0 2px; font-size: 11px; font-weight: 600; color: var(--fg-muted); text-transform: uppercase; letter-spacing: .04em; }
+  .log h3:first-child { margin-top: 0; }
+  .log p { margin: 0 0 4px; font-size: 14px; color: var(--fg-muted); }
+  .log p:last-child { margin-bottom: 0; }
+  .log p.now { color: var(--fg); }
+  body.paused .log { max-height: 40vh; }
+  body.paused .log p { color: var(--fg); }
+  body.paused .log p.now { box-shadow: inset 2px 0 0 var(--focus); padding-left: 8px; }
+  .eq { display: inline-flex; gap: 2px; align-items: flex-end; height: 10px; }
+  .eq i { width: 2px; background: var(--accent); animation: eq .8s infinite ease-in-out; }
+  .eq i:nth-child(2) { animation-delay: .2s; } .eq i:nth-child(3) { animation-delay: .4s; }
+  @keyframes eq { 0%, 100% { height: 3px; } 50% { height: 10px; } }
+  body.paused .eq i { animation-play-state: paused; }
+  kbd { font: 11px var(--mono); border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; background: var(--bg); }
+  .hint { flex: none; font-size: 11px; color: var(--fg-muted); white-space: nowrap; }
+  @media (max-width: 520px) { .hint { display: none; } }
+
+
+  /* Pantalla inicial */
+  #start {
+    position: fixed; inset: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(3px); display: grid; place-items: center; padding: 16px;
+  }
+  #start .box {
+    max-width: 380px; text-align: center; background: var(--bg); border: 1px solid var(--border);
+    border-radius: 12px; padding: 24px; box-shadow: var(--shadow);
+  }
+  #start h2 { margin: 0 0 6px; font-size: 17px; }
+  #start p { margin: 0 0 16px; color: var(--fg-muted); font-size: 13px; }
+  #start button {
+    background: var(--accent); color: #fff; border: 0; border-radius: 8px; padding: 8px 18px; font-weight: 600;
+  }
+</style>
+</head>
+<body class="paused">
+
+<header>
+  <h1 class="pr-title">Añadir límite de intentos al login <span class="num">#482</span></h1>
+  <div class="pr-meta">
+    <span><span class="branch">feature/login-rate-limit</span> → <span class="branch">main</span></span>
+    <span>4 ficheros · <span class="plus">+78</span> <span class="minus">−4</span></span>
+    <span class="badge">Nivel: ficheros clave</span>
+    <span class="badge" id="voice-badge">Voz: —</span>
+  </div>
+</header>
+
+<nav><ol class="steps" id="steps"></ol></nav>
+
+<main id="main"></main>
+
+<footer>
+  <div class="progress"><i id="progress"></i></div>
+  <div class="bar">
+    <div class="transport">
+      <button data-sim="restart" title="Reiniciar el recorrido" aria-label="Reiniciar el recorrido"><svg viewBox="0 0 16 16"><path d="M2 2.5h1.8v11H2zM9.5 3v10l-5-5zM15 3v10l-5-5z"/></svg></button>
+      <button data-sim="prev" title="Paso anterior (←)" aria-label="Paso anterior"><svg viewBox="0 0 16 16"><path d="M3 2.5h2v11H3zM13.5 2.5v11L6 8z"/></svg></button>
+      <button data-sim="step" title="Reiniciar este paso (R)" aria-label="Reiniciar este paso"><svg viewBox="0 0 16 16"><path d="M3.6 8.6a4.5 4.5 0 1 0 1.3-3.8" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M2.4 2v4.2h4.2z"/></svg></button>
+      <button id="pause" title="Pausar / reanudar (Espacio)" aria-label="Pausar o reanudar"></button>
+      <button data-sim="next" title="Paso siguiente (→)" aria-label="Paso siguiente"><svg viewBox="0 0 16 16"><path d="M11 2.5h2v11h-2zM2.5 2.5v11L10 8z"/></svg></button>
+    </div>
+    <div class="subtitle">
+      <div class="who"><span class="eq"><i></i><i></i><i></i></span><span id="who">En pausa</span></div>
+      <div class="log" id="log" tabindex="0" aria-label="Lo dicho en este paso"></div>
+    </div>
+    <div class="hint"><kbd>Espacio</kbd> pausa</div>
+  </div>
+</footer>
+
+<div id="start">
+  <div class="box">
+    <h2>Walkthrough listo</h2>
+    <p>El agente ha preparado 8 pasos. El navegador exige un clic antes de dejar hablar a la página.</p>
+    <button id="go">Empezar</button>
+  </div>
+</div>
+
+<script>
+// ───────────── Datos inventados: en la app real los manda el agente por CLI ─────────────
+const FILES = {
+  limiter: {
+    path: 'src/auth/rateLimiter.ts', tag: 'new', start: 1, lines: [
+      "+import { Store } from '../store';",
+      "+import { authConfig } from '../config/auth';",
+      "+",
+      "+export class LoginRateLimiter {",
+      "+  constructor(private store: Store) {}",
+      "+",
+      "+  async isBlocked(email: string): Promise<boolean> {",
+      "+    const attempts = await this.store.get(this.key(email));",
+      "+    return Number(attempts ?? 0) >= authConfig.maxAttempts;",
+      "+  }",
+      "+",
+      "+  async registerFailure(email: string): Promise<void> {",
+      "+    const key = this.key(email);",
+      "+    const attempts = await this.store.incr(key);",
+      "+    if (attempts === 1) {",
+      "+      await this.store.expire(key, authConfig.windowSeconds);",
+      "+    }",
+      "+  }",
+      "+",
+      "+  async reset(email: string): Promise<void> {",
+      "+    await this.store.del(this.key(email));",
+      "+  }",
+      "+",
+      "+  private key(email: string) {",
+      "+    return `login:attempts:${email.toLowerCase()}`;",
+      "+  }",
+      "+}",
+    ],
+  },
+  controller: {
+    path: 'src/auth/loginController.ts', tag: 'mod', start: 12, lines: [
+      " export async function login(req: Request, res: Response) {",
+      "   const { email, password } = req.body;",
+      " ",
+      "+  if (await limiter.isBlocked(email)) {",
+      "+    return res.status(429).json({ error: 'too_many_attempts' });",
+      "+  }",
+      "+",
+      "   const user = await users.findByEmail(email);",
+      "-  if (!user || !(await verify(password, user.hash))) {",
+      "-    return res.status(401).json({ error: 'invalid_credentials' });",
+      "-  }",
+      "+  const valid = user && (await verify(password, user.hash));",
+      "+  if (!valid) {",
+      "+    await limiter.registerFailure(email);",
+      "+    return res.status(401).json({ error: 'invalid_credentials' });",
+      "+  }",
+      " ",
+      "+  await limiter.reset(email);",
+      "   const session = await sessions.create(user.id);",
+      "   return res.json({ token: session.token });",
+      " }",
+    ],
+  },
+  config: {
+    path: 'src/config/auth.ts', tag: 'mod', start: 3, lines: [
+      " export const authConfig = {",
+      "   sessionTtlSeconds: 60 * 60 * 8,",
+      "-  passwordMinLength: 10,",
+      "+  passwordMinLength: 10,",
+      "+  maxAttempts: Number(process.env.LOGIN_MAX_ATTEMPTS ?? 5),",
+      "+  windowSeconds: Number(process.env.LOGIN_WINDOW_SECONDS ?? 900),",
+      " };",
+    ],
+  },
+};
+
+const STEPS = [
+  { label: 'Resumen', card: 'overview', say: [
+    'Esta PR añade un límite de intentos al login.',
+    'Son cuatro ficheros: una clase nueva que cuenta los fallos, el controlador de login que la usa, dos valores de configuración y los tests.',
+    'Vamos a verlos en ese orden.',
+  ]},
+  { label: 'rateLimiter · estructura', file: 'limiter', range: [3, 9], why: 'La pieza nueva', say: [
+    'Empezamos por la clase nueva, LoginRateLimiter.',
+    'Recibe un almacén clave-valor y expone tres operaciones.',
+    'La primera, isBlocked, lee el contador de ese correo y lo compara con el máximo configurado.',
+  ]},
+  { label: 'rateLimiter · contar fallos', file: 'limiter', range: [11, 17], why: 'Dónde se cuenta', say: [
+    'Aquí está la lógica central.',
+    'Cada fallo incrementa el contador, y solo en el primer fallo se le pone caducidad.',
+    'Eso significa que la ventana empieza con el primer intento fallido y no se alarga con los siguientes.',
+  ]},
+  { label: 'loginController · bloqueo', file: 'controller', range: [3, 5], why: 'Dónde se aplica', say: [
+    'Ahora el controlador.',
+    'La comprobación va antes de buscar al usuario y antes de verificar la contraseña.',
+    'Si el correo está bloqueado se responde 429 y no se toca nada más.',
+  ]},
+  { label: 'loginController · fallo y éxito', file: 'controller', range: [8, 17], why: 'Registro y reinicio', say: [
+    'El if original se ha partido en dos para poder registrar el fallo antes de devolver el 401.',
+    'Fíjate en que se registra tanto si el usuario no existe como si la contraseña es incorrecta.',
+    'Así no se puede usar el límite para averiguar qué correos existen.',
+    'Y cuando el login va bien, el contador se reinicia.',
+    'El reinicio va antes de crear la sesión, así que un fallo al crearla no deja el contador sucio.',
+  ]},
+  { label: 'Configuración', file: 'config', range: [4, 5], why: 'Valores por defecto', say: [
+    'La configuración añade dos valores, leídos de variables de entorno.',
+    'Por defecto son cinco intentos en una ventana de quince minutos.',
+  ]},
+  { label: 'Tests', card: 'tests', say: [
+    'Por último, los tests. Hay un fichero nuevo con cuatro casos.',
+    'Cubren el bloqueo al llegar al máximo, la caducidad de la ventana y el reinicio tras un login correcto.',
+    'No hay ningún test del controlador que compruebe la respuesta 429.',
+  ]},
+  { label: 'Fin', card: 'end', say: [
+    'Eso es todo. Pregúntame en el chat lo que quieras, o pídeme que vuelva a cualquier paso.',
+  ]},
+];
+
+const CARDS = {
+  overview: { title: 'Qué hace esta PR', lead: 'Limita los intentos fallidos de login por correo.', items: [
+    ['src/auth/rateLimiter.ts', 'Nueva clase que cuenta fallos y decide si un correo está bloqueado.'],
+    ['src/auth/loginController.ts', 'Consulta el límite antes de verificar y registra cada fallo.'],
+    ['src/config/auth.ts', 'Máximo de intentos y duración de la ventana.'],
+    ['test/auth/rateLimiter.test.ts', 'Tests unitarios de la clase nueva.'],
+  ]},
+  tests: { title: 'Tests', lead: 'test/auth/rateLimiter.test.ts · 4 casos nuevos', items: [
+    ['bloquea tras el máximo de intentos', 'Cinco fallos seguidos y isBlocked devuelve true.'],
+    ['no bloquea por debajo del máximo', 'Cuatro fallos y sigue pudiendo intentarlo.'],
+    ['la ventana caduca', 'Avanza el reloj quince minutos y el contador desaparece.'],
+    ['reset limpia el contador', 'Tras un login correcto se vuelve a cero.'],
+    ['Sin cubrir', 'Ningún test del controlador comprueba la respuesta 429.'],
+  ]},
+  end: { title: 'Fin del recorrido', lead: 'El agente sigue disponible en el chat.', items: [
+    ['«Vuelve al controlador»', 'Salta a ese paso y lo repite.'],
+    ['«¿Qué pasa si el almacén se cae?»', 'Responde y, si hace falta, enseña el código.'],
+    ['«Ahora el recorrido completo»', 'Genera un guion nuevo con más detalle.'],
+  ]},
+};
+
+// ───────────── Render ─────────────
+const $ = (id) => document.getElementById(id);
+const main = $('main');
+const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+
+function renderSteps() {
+  $('steps').innerHTML = STEPS.map((s, i) =>
+    `<li><button class="step ${i < state.step ? 'done' : ''} ${i === state.step ? 'current' : ''}" data-step="${i}" title="Ir a este paso"><span class="dot"></span>${i + 1}. ${esc(s.label)}</button></li>`).join('');
+  $('steps').querySelector('.current')?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+  $('progress').style.width = ((state.step + 1) / STEPS.length * 100) + '%';
+}
+
+function renderFile(step) {
+  const f = FILES[step.file];
+  let o = f.start, n = f.start;
+  const rows = f.lines.map((l, i) => {
+    const t = l[0], cls = t === '+' ? 'add' : t === '-' ? 'del' : '';
+    const on = t === '+' ? '' : o++, nn = t === '-' ? '' : n++;
+    const [a, b] = step.range, hl = i >= a && i <= b;
+    return `<tr class="${cls} ${hl ? 'hl' : ''} ${i === a ? 'hl-first' : ''} ${i === b ? 'hl-last' : ''}">` +
+      `<td class="n">${on}</td><td class="n">${nn}</td><td class="s">${t === ' ' ? '' : t}</td><td class="c">${esc(l.slice(1)) || ' '}</td></tr>`;
+  }).join('');
+  main.innerHTML =
+    `<div class="file-head"><span class="tag ${f.tag}">${f.tag === 'new' ? 'nuevo' : 'modificado'}</span>${f.path}<span class="why">${esc(step.why)}</span></div>` +
+    `<table class="diff focused"><tbody>${rows}</tbody></table>`;
+  main.querySelector('.hl-first')?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+}
+
+function renderCard(step) {
+  const c = CARDS[step.card];
+  main.innerHTML = `<div class="card"><h2>${esc(c.title)}</h2><p class="lead">${esc(c.lead)}</p><ul>` +
+    c.items.map(([a, b]) => `<li><b><code>${esc(a)}</code></b><span>${esc(b)}</span></li>`).join('') + `</ul></div>`;
+  main.scrollTop = 0;
+}
+
+// Historial del paso actual: lo ya dicho, con la frase en curso marcada.
+// Es continuo para todo el recorrido: cada paso abre un bloque con su título.
+const history = [];
+function renderLog() {
+  const last = history[history.length - 1];
+  if (!last || last.step !== state.step || last.sentence !== state.sentence) {
+    history.push({ step: state.step, sentence: state.sentence, text: STEPS[state.step].say[state.sentence] });
+  }
+  $('log').innerHTML = history.map((h, i) => {
+    const head = i === 0 || history[i - 1].step !== h.step || h.sentence === 0
+      ? `<h3>Paso ${h.step + 1} · ${esc(STEPS[h.step].label)}</h3>` : '';
+    return head + `<p class="${i === history.length - 1 ? 'now' : ''}">${esc(h.text)}</p>`;
+  }).join('');
+  $('log').scrollTop = $('log').scrollHeight;
+}
+
+function render() {
+  const step = STEPS[state.step];
+  step.card ? renderCard(step) : renderFile(step);
+  renderSteps();
+}
+
+// ───────────── Reproducción y voz ─────────────
+const state = { step: 0, sentence: 0, playing: false, token: 0, useSpeech: 'speechSynthesis' in window, timer: null };
+const ICON = {
+  play: '<svg viewBox="0 0 16 16"><path d="M4 2.5v11l9-5.5z"/></svg>',
+  pause: '<svg viewBox="0 0 16 16"><path d="M3.5 2.5h3v11h-3zM9.5 2.5h3v11h-3z"/></svg>',
+};
+
+function voice() {
+  const vs = speechSynthesis.getVoices().filter(v => v.lang.toLowerCase().startsWith('es'));
+  return vs.find(v => /premium|enhanced|mejorad/i.test(v.name))
+    || vs.find(v => /^(m[oó]nica|jorge|marisol|paulina|google espa[nñ]ol)/i.test(v.name))
+    || vs.find(v => v.lang === 'es-ES') || vs[0] || null;
+}
+
+function stopAudio() {
+  state.token++;
+  clearTimeout(state.timer);
+  if (state.useSpeech) speechSynthesis.cancel();
+}
+
+function speakCurrent() {
+  const step = STEPS[state.step];
+  const text = step.say[state.sentence];
+  renderLog();
+  $('who').textContent = `Paso ${state.step + 1} de ${STEPS.length} · frase ${state.sentence + 1} de ${step.say.length}`;
+  const my = ++state.token;
+  const done = () => { if (my === state.token) advance(); };
+  const timed = () => { state.timer = setTimeout(done, 900 + text.length * 55); };
+
+  if (!state.useSpeech) return timed();
+  const u = new SpeechSynthesisUtterance(text);
+  const v = voice();
+  if (v) { u.voice = v; u.lang = v.lang; } else { u.lang = 'es-ES'; }
+  u.rate = 1.05;
+  let started = false;
+  u.onstart = () => { started = true; $('voice-badge').textContent = 'Voz: ' + (v ? v.name : 'navegador'); };
+  u.onend = done;
+  u.onerror = () => { if (my === state.token && !started) fallback(); };
+  speechSynthesis.speak(u);
+  // Si el navegador no arranca la voz, seguimos con subtítulos temporizados.
+  state.timer = setTimeout(() => { if (my === state.token && !started) fallback(); }, 2500);
+  function fallback() {
+    state.useSpeech = false; speechSynthesis.cancel();
+    $('voice-badge').textContent = 'Voz: no disponible aquí (solo subtítulos)';
+    timed();
+  }
+}
+
+function advance() {
+  const step = STEPS[state.step];
+  if (state.sentence < step.say.length - 1) { state.sentence++; return speakCurrent(); }
+  if (state.step < STEPS.length - 1) { state.step++; state.sentence = 0; render(); return speakCurrent(); }
+  setPlaying(false);
+  $('who').textContent = 'Recorrido terminado';
+}
+
+function setPlaying(on) {
+  state.playing = on;
+  document.body.classList.toggle('paused', !on);
+  $('pause').innerHTML = on ? ICON.pause : ICON.play;
+  $('log').scrollTop = $('log').scrollHeight; // el panel cambia de altura al pausar
+  if (on) speakCurrent();
+  else { stopAudio(); $('who').textContent = `En pausa · paso ${state.step + 1}, frase ${state.sentence + 1}`; }
+}
+
+function goTo(i) {
+  stopAudio();
+  state.step = Math.max(0, Math.min(STEPS.length - 1, i));
+  state.sentence = 0;
+  render();
+  setPlaying(true);
+}
+
+// ───────────── Eventos ─────────────
+$('pause').onclick = () => setPlaying(!state.playing);
+document.addEventListener('keydown', (e) => {
+  if (e.code !== 'Space' || $('start')) return;
+  e.preventDefault();
+  setPlaying(!state.playing);
+});
+document.querySelectorAll('[data-sim]').forEach(b => b.onclick = () => {
+  b.blur();
+  transport(b.dataset.sim);
+});
+function transport(cmd) {
+  goTo(cmd === 'prev' ? state.step - 1 : cmd === 'next' ? state.step + 1 : cmd === 'step' ? state.step : 0);
+}
+document.addEventListener('keydown', (e) => {
+  if ($('start') || e.metaKey || e.ctrlKey || e.altKey) return;
+  const cmd = { ArrowLeft: 'prev', ArrowRight: 'next', KeyR: 'step' }[e.code];
+  if (cmd) { e.preventDefault(); transport(cmd); }
+});
+$('steps').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-step]');
+  if (!b) return;
+  goTo(Number(b.dataset.step));
+});
+$('go').onclick =() => { $('start').remove(); setPlaying(true); };
+if (state.useSpeech) speechSynthesis.getVoices();
+window.addEventListener('beforeunload', stopAudio);
+
+$('pause').innerHTML = ICON.play;
+render();
+renderLog();
+</script>
+</body>
+</html>
