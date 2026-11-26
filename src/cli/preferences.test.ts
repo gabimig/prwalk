@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { tempDir } from '../../test/git-repo.js';
@@ -35,8 +35,10 @@ describe('preferences', () => {
     const path = preferencesPath(home);
     expect(resetPreferences(home)).toEqual({ path });
     writeFileSync(path, 'mine\n');
+    chmodSync(path, 0o644);
     expect(resetPreferences(home)).toEqual({ path, backup: `${path}.bak` });
     expect(readFileSync(path, 'utf8')).toBe(defaults);
+    expect(statSync(path).mode & 0o777).toBe(0o600);
     expect(readFileSync(`${path}.bak`, 'utf8')).toBe('mine\n');
 
     rmSync(`${path}.bak`);
