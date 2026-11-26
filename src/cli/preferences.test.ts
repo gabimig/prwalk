@@ -1,4 +1,4 @@
-import { readFileSync, statSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { tempDir } from '../../test/git-repo.js';
@@ -38,6 +38,12 @@ describe('preferences', () => {
     expect(resetPreferences(home)).toEqual({ path, backup: `${path}.bak` });
     expect(readFileSync(path, 'utf8')).toBe(defaults);
     expect(readFileSync(`${path}.bak`, 'utf8')).toBe('mine\n');
+
+    rmSync(`${path}.bak`);
+    mkdirSync(`${path}.bak`);
+    writeFileSync(path, 'mine\n');
+    expect(() => resetPreferences(home)).toThrow(/EISDIR/);
+    expect(readFileSync(path, 'utf8')).toBe('mine\n');
   });
 
   it('gives the guide with the default preferences and a warning when it cannot create the file', () => {
