@@ -1,4 +1,4 @@
-# prwalk
+# PRWalk
 
 A local tool that lets any coding agent give a human a **spoken, guided walkthrough of a pull request**, the way a PR author would on a call before the review.
 
@@ -84,7 +84,7 @@ Who owns what:
 
 ## Commands
 
-`prwalk open [pr | --base <ref> | --patch <file>]`, `diff [--file <path>]`, `validate <file>`, `play <file> | --clear`, `focus <file> --lines <a-b> | --clear`, `status`, `wait`, `pause`, `resume`, `goto <step>`, `say <text> [--question] [--file --lines] [--resume]`, `replace --from <step> <file>`, `voice`, `voice list`, `voice install <name> [--option k=v]`, `voice remove <name>`, `voice use <browser | adapter> [--option k=v]`, `voice test [text] [--lang] [--out]`, `voice guide`, `skill`, `skill install [--dir]`, `stop`, and the internal `daemon`. Every command but `skill`, `voice guide` and `daemon` takes `--json`; `prwalk <command> --help` has the details. The README has a one-line description of each.
+`prwalk open [pr | --base <ref> | --patch <file>]`, `diff [--file <path>]`, `validate <file>`, `play <file> | --clear`, `focus <file> --lines <a-b> | --clear`, `status`, `wait`, `pause`, `resume`, `goto <step>`, `say <text> [--question] [--file --lines] [--resume]`, `replace --from <step> <file>`, `voice`, `voice list`, `voice install <name> [--option k=v]`, `voice remove <name>`, `voice use <browser | adapter> [--option k=v]`, `voice test [text] [--lang] [--out]`, `voice guide`, `skill`, `skill install [--dir]`, `stop`, and the internal `daemon`. Every command but `skill`, `voice guide` and `daemon` takes `--json`; `prwalk <command> --help` has the details. `docs/commands.md` has a one-line description of each.
 
 ## Releases
 
@@ -98,6 +98,8 @@ To publish a version: raise `version` in `package.json` in a PR, and once it is 
 
 ## Conventions
 
+- **Name:** the product is PRWalk in prose; the command, the package and the skill are `prwalk`.
+- **README:** it sells the project and gets it installed, nothing else. Reference material goes in `docs/` (`commands.md`, `voices.md`, `development.md`), linked from it.
 - **Language:** code, comments, commit messages, PRs and README in English. Planning docs in `docs/plan/` in Spanish.
 - **Licences:** dependencies must be MIT, Apache-2.0, BSD or ISC. Nothing GPL/AGPL/LGPL. Say which licence a new dependency has in the PR description.
 - **Dependencies:** prefer few. Agreed so far: `zod` (schema), `commander` (CLI), `ws` (WebSocket), `@pierre/diffs` (diff rendering), `vitest`, `@biomejs/biome`, Playwright for browser tests.
