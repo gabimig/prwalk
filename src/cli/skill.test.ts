@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -97,6 +97,7 @@ describe('prwalk skill', { timeout: 30_000 }, () => {
         `^Cannot install the skill in ${file}: .*ENOTDIR.*\\. Choose another folder with --dir\\.\n$`,
       ),
     );
+    expect(existsSync(join(home, 'preferences.md'))).toBe(false);
   });
 
   it('tells a user without prwalk the same install command as the README', () => {
