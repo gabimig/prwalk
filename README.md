@@ -14,6 +14,7 @@ Ask your agent for a walkthrough and a page opens next to your chat. A voice exp
 - **You stay in control.** Play, pause, step back, jump to any step, replay the last one. Space, ← and → do the same.
 - **Interrupt like on a real call.** "Why not a transaction here?", "skip the tests", "go deeper from now on": say it in your agent's chat and the walkthrough adapts.
 - **As long as you want it.** A two-minute overview, the key files, or every hunk.
+- **It adapts to you.** It starts with the overview and goes into detail where you ask. Your preferences live in a file that you or your agent edit.
 - **In your language.** The narration follows the language you speak to your agent.
 - **A voice you can stand.** It starts with your browser's voices, installs a natural-sounding local one with one command, or uses any engine you plug in.
 - **Private.** It runs on your machine. Your code and the narration stay there.
@@ -39,7 +40,7 @@ The easy way: give your agent this page and say **"install this"**.
 Inside a repository, ask your agent:
 
 - "Walk me through PR 482."
-- "Explain my local changes out loud, overview only."
+- "Explain my local changes out loud, in full detail."
 - "Hazme un walkthrough completo de esta PR."
 
 The first time, it offers you a choice of voice. Then press Start in the page and listen. To interrupt, pause and type your question in the chat.
