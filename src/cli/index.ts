@@ -14,7 +14,7 @@ import {
   statusCommand,
   stopCommand,
 } from './session-commands.js';
-import { installSkill, printGuide } from './skill-commands.js';
+import { installSkill, preferencesCommand, printGuide } from './skill-commands.js';
 import { validateCommand } from './validate.js';
 import {
   printVoiceGuide,
@@ -199,7 +199,9 @@ program
 
 const skill = program
   .command('skill')
-  .description('Print the full guide for agents: how to give a walkthrough with prwalk.')
+  .description(
+    "Print the full guide for agents: how to give a walkthrough with prwalk, then the user's preferences.",
+  )
   .action(action(async () => printGuide()));
 
 skill
@@ -210,6 +212,24 @@ skill
     "skills folder; the stub goes in <folder>/prwalk/SKILL.md (default: Claude Code's ~/.claude/skills)",
   )
   .action(action(async (options: { dir?: string }) => installSkill(options)));
+
+program
+  .command('preferences')
+  .description(
+    "Print the user's preferences for walkthroughs and the file they are in, creating it with the defaults if needed.",
+  )
+  .option('--path', 'print only the path of the file')
+  .option('--reset', 'go back to the defaults, keeping the previous file as preferences.md.bak')
+  .option('--json', 'print the result as JSON')
+  .addHelpText(
+    'after',
+    '\nThe file is <PRWALK_HOME>/preferences.md, plain Markdown for the agent to follow: edit it by\nhand or ask your agent to. Nothing overwrites it but --reset.',
+  )
+  .action(
+    action(async (options: { path?: boolean; reset?: boolean; json?: boolean }) =>
+      preferencesCommand(options),
+    ),
+  );
 
 const voice = program
   .command('voice')

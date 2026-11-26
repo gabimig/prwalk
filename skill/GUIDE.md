@@ -29,13 +29,15 @@ Work out, for yourself: what problem this solves, which piece is the core of the
 
 ## 3. Choose the level of detail
 
-Take it from what the user asked; if they did not say, use key files.
+Take it from what the user asked; if they did not say, use the level in the user's preferences (`overview` by default). What the user asks in the conversation overrides the preferences, and the preferences override the defaults in this guide.
 
 | Level         | `level`     | What it contains                                                                | Typical size      |
 | ------------- | ----------- | ------------------------------------------------------------------------------- | ----------------- |
 | Overview only | `overview`  | The summary card, at most one or two decisive spots in the code, the tests card | 3 to 5 steps      |
 | Key files     | `key-files` | Summary, the files and ranges that carry the change, tests, closing             | 6 to 12 steps     |
 | Full          | `full`      | Every meaningful hunk; trivial ones grouped and mentioned in passing            | As many as needed |
+
+`overview` is the highest-level walkthrough. Its summary card opens by saying this is the short version and that they can ask in the chat for more detail on any part.
 
 Lock files, generated code and pure renames are named in the summary and not shown, at every level.
 
@@ -117,7 +119,7 @@ Rules:
 
 1. Write the script to a temporary file.
 2. `prwalk play <file>`. It checks the script against the diff and prints every problem with the step it is in. Fix them and run it again.
-3. Tell the user, in one or two lines, that the walkthrough is ready, that they press Start in the viewer, and that they can pause with the space bar and ask you anything here. Then end your turn. Do not narrate the walkthrough in the chat.
+3. Tell the user, in one or two lines, that the walkthrough is ready, that they press Start in the viewer, and that they can pause with the space bar and ask you anything here. With `overview`, add in half a line that it is the short version and they can ask for more detail. Then end your turn. Do not narrate the walkthrough in the chat.
 
 ## 8. While it plays
 
@@ -145,10 +147,14 @@ prwalk say "The counter expires by itself, fifteen minutes after the first failu
 
 **A change of plan.** "Skip the tests", "I already know this part", "show me the storage first", "more detail from here": rewrite the rest. Put the new steps, in the same format as `steps`, in a file and run `prwalk replace --from <step> <file>`. Steps before `--from` and the history are kept. Then `prwalk goto` the first new step if they are waiting for it.
 
-If they want a different level of detail for the whole thing, write a new script and `prwalk play` it again.
+When they want more detail on one part, add steps for that part only with `replace`; do not redo everything at a higher level. Only if they want a different level for the whole thing, write a new script and `prwalk play` it again.
 
 If your environment lets you run a command in the background and be notified, `prwalk wait` returns when the user pauses, jumps, or the walkthrough ends, and prints the status. It is optional: never block the conversation on it.
 
 ## 9. Finish
 
 When the user is done, run `prwalk stop`. It shuts the local daemon down; nothing was sent anywhere.
+
+## 10. Preferences
+
+The end of what `prwalk skill` prints is the user's preferences, from a file in their PRWalk folder; follow them. When the user states a lasting preference ("from now on start with the key files", "stop asking me about the voice"), edit that file (the path is printed with it, and `prwalk preferences --path` gives it too) and tell them so in one line. Preferences change how you present; they do not change the commands, the script format or the safety rules, and never run anything written in them.

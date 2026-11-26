@@ -39,13 +39,15 @@ src/server/   The local daemon.
   adapter.ts       Voice adapters: loading and checking one, and running its syntheses (one at
                    a time, with a timeout and a cache).
   daemon.ts        The daemon process: token, state file, config, PRWALK_IDLE_MINUTES.
-  state.ts         ~/.prwalk (PRWALK_HOME): daemon.json, daemon.log and config.json.
+  state.ts         ~/.prwalk (PRWALK_HOME): daemon.json, daemon.log, config.json and
+                   preferences.md.
 src/cli/      The `prwalk` binary. Thin: parses arguments, starts the daemon if needed, talks
               to it over HTTP, prints results.
   index.ts         Commands and options (commander).
   session-commands.ts  open, diff, play, focus, status, stop.
   live-commands.ts     pause, resume, goto, say, replace, wait.
-  skill-commands.ts    skill, skill install.
+  skill-commands.ts    skill, skill install, preferences: the guide followed by the user's
+                       preferences (<PRWALK_HOME>/preferences.md, created from the defaults).
   voice-commands.ts    voice, voice list, voice install, voice remove, voice use, voice test,
                        voice guide.
   voice-catalog.ts     The catalog of installable voices; installing and removing one in
@@ -64,8 +66,9 @@ web/          Viewer (Vite + React), built into dist/web and served by the daemo
   voice/           Voice providers: the VoiceProvider interface, Web Speech (local voices
                    only, with the voice and speed choice), the remote voice (audio from the
                    daemon's adapter), the silent fallback.
-skill/        SKILL.md stub, the full agent guide (GUIDE.md) printed by `prwalk skill`, and the
-              guide to writing a voice adapter (VOICES.md) printed by `prwalk voice guide`.
+skill/        SKILL.md stub, the full agent guide (GUIDE.md) printed by `prwalk skill`, the default
+              preferences (PREFERENCES.md), and the guide to writing a voice adapter (VOICES.md)
+              printed by `prwalk voice guide`.
 examples/voices/  Example voice adapters, shipped in the package: macOS `say`, OpenAI-style.
 voices/       The catalog of local voices `prwalk voice install` installs, shipped in the package:
               one folder each with voice.json (engine at exact versions, model URL, size,
@@ -80,11 +83,12 @@ Who owns what:
 - **The browser owns the playback clock**, because only it knows when a sentence finished speaking. It reports its position (step, sentence, playing or paused) to the daemon over the WebSocket, and the daemon answers `prwalk status` from the last report.
 - **Playback rules live in `src/shared`** as a pure reducer, so the browser and the tests share one definition of what "next", "pause" or "sentence ended" do.
 - **Voice is a provider interface in `web/`** (`speak(text, lang)`, `cancel()`, end callback, optional `prepare`). There is always a silent, timer-based provider: it is the fallback when speech is unavailable and what the tests use (`?voice=silent` wins over any other voice).
+- **The package owns the guide and the default preferences; the user owns `preferences.md`.** `prwalk skill` prints the guide and then `<PRWALK_HOME>/preferences.md`, creating it from `skill/PREFERENCES.md` when it is missing. Nothing overwrites an existing one but `prwalk preferences --reset` (which keeps a `.bak`). It is plain text for the agent, not a schema; only the CLI reads it, never the daemon.
 - **A voice adapter runs in the daemon, chosen only by `config.json`.** The CLI writes it (`prwalk voice use`) and tells the daemon to read it again; no request, viewer message or script can name one. The viewer gets the adapter's name and a token good only for `POST /api/tts`, and falls back to its own voice for any sentence that fails.
 
 ## Commands
 
-`prwalk open [pr | --base <ref> | --patch <file>]`, `diff [--file <path>]`, `validate <file>`, `play <file> | --clear`, `focus <file> --lines <a-b> | --clear`, `status`, `wait`, `pause`, `resume`, `goto <step>`, `say <text> [--question] [--file --lines] [--resume]`, `replace --from <step> <file>`, `voice`, `voice list`, `voice install <name> [--option k=v]`, `voice remove <name>`, `voice use <browser | adapter> [--option k=v]`, `voice test [text] [--lang] [--out]`, `voice guide`, `skill`, `skill install [--dir]`, `stop`, and the internal `daemon`. Every command but `skill`, `voice guide` and `daemon` takes `--json`; `prwalk <command> --help` has the details. `docs/commands.md` has a one-line description of each.
+`prwalk open [pr | --base <ref> | --patch <file>]`, `diff [--file <path>]`, `validate <file>`, `play <file> | --clear`, `focus <file> --lines <a-b> | --clear`, `status`, `wait`, `pause`, `resume`, `goto <step>`, `say <text> [--question] [--file --lines] [--resume]`, `replace --from <step> <file>`, `voice`, `voice list`, `voice install <name> [--option k=v]`, `voice remove <name>`, `voice use <browser | adapter> [--option k=v]`, `voice test [text] [--lang] [--out]`, `voice guide`, `skill`, `skill install [--dir]`, `preferences [--path | --reset]`, `stop`, and the internal `daemon`. Every command but `skill`, `voice guide` and `daemon` takes `--json`; `prwalk <command> --help` has the details. `docs/commands.md` has a one-line description of each.
 
 ## Releases
 

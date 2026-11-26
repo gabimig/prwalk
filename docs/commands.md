@@ -28,8 +28,9 @@ Every command prints short plain text; add `--json` for the same as JSON. `prwal
 | `prwalk voice remove <name>`          | Deletes an installed voice; if it was in use, goes back to the browser's voices.                                                                        |
 | `prwalk voice test [text]`            | Synthesizes a sentence with the chosen adapter (`--lang`, `--out <file>` to save it).                                                                   |
 | `prwalk voice guide`                  | Prints the guide to writing a voice adapter.                                                                                                            |
-| `prwalk skill`                        | Prints the full guide for agents.                                                                                                                       |
+| `prwalk skill`                        | Prints the full guide for agents, followed by your preferences.                                                                                         |
 | `prwalk skill install`                | Installs the skill stub (`--dir <folder>` for other agents).                                                                                            |
+| `prwalk preferences`                  | Prints your preferences and the file they are in (`--path` for the path only, `--reset` to go back to the defaults).                                    |
 | `prwalk stop`                         | Stops the local daemon.                                                                                                                                 |
 
 ## Try it without an agent
@@ -59,6 +60,12 @@ Answers are said in the script's language, hence the Spanish one.
 
 Questions, "skip this" or "more detail" go to the agent, in its chat: the page has no text box and no microphone.
 
+## Your preferences
+
+How your agent gives you walkthroughs lives in `~/.prwalk/preferences.md` (in `PRWALK_HOME`): the default level of detail (the overview, unless you ask for more), how it opens, how it goes deeper when you ask, and the language. It is plain Markdown for your agent to read, created with the defaults the first time your agent runs `prwalk skill`.
+
+Change it by editing the file, or tell your agent ("from now on start with the key files") and it edits it for you. What you ask in the conversation still wins over the file. Updating PRWalk or reinstalling the skill never touches it; `prwalk preferences --reset` puts the defaults back and keeps your version as `preferences.md.bak`.
+
 ## Privacy
 
 - Everything runs on your machine. The daemon listens on `127.0.0.1` only, and refuses requests and pages from other origins.
@@ -67,11 +74,11 @@ Questions, "skip this" or "more detail" go to the agent, in its chat: the page h
 
 ## Configuration
 
-| Variable              | Default     | What it sets                                                                                     |
-| --------------------- | ----------- | ------------------------------------------------------------------------------------------------ |
-| `PRWALK_PORT`         | `4517`      | Port of the daemon (`--port` on `prwalk open` too).                                              |
-| `PRWALK_HOME`         | `~/.prwalk` | Folder for the daemon's state file, its log, `config.json` (the voice) and the installed voices. |
-| `PRWALK_IDLE_MINUTES` | `240`       | The daemon stops after this long with no viewer open and no command; `0` never.                  |
+| Variable              | Default     | What it sets                                                                                                       |
+| --------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------ |
+| `PRWALK_PORT`         | `4517`      | Port of the daemon (`--port` on `prwalk open` too).                                                                |
+| `PRWALK_HOME`         | `~/.prwalk` | Folder for the daemon's state file, its log, `config.json` (the voice), your preferences and the installed voices. |
+| `PRWALK_IDLE_MINUTES` | `240`       | The daemon stops after this long with no viewer open and no command; `0` never.                                    |
 
 ## Update and uninstall
 
@@ -81,7 +88,7 @@ To update, run the install command again. To uninstall:
 prwalk stop
 npm uninstall -g prwalk
 rm -r ~/.claude/skills/prwalk   # or <folder>/prwalk if you used prwalk skill install --dir <folder>
-rm -r ~/.prwalk                 # settings, logs and installed voices
+rm -r ~/.prwalk                 # settings, your preferences, logs and installed voices
 ```
 
 ## Known limitations
