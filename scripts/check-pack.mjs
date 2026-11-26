@@ -52,9 +52,17 @@ try {
   );
 
   check(prwalk('--version').trim() === version, `--version does not print ${version}`);
+  const defaults = readFileSync(join(root, 'skill', 'PREFERENCES.md'), 'utf8');
+  const guide = prwalk('skill');
   check(
-    prwalk('skill') === readFileSync(join(root, 'skill', 'GUIDE.md'), 'utf8'),
-    'prwalk skill does not print skill/GUIDE.md',
+    guide.startsWith(readFileSync(join(root, 'skill', 'GUIDE.md'), 'utf8')) &&
+      guide.endsWith(defaults),
+    'prwalk skill does not print skill/GUIDE.md followed by skill/PREFERENCES.md',
+  );
+  check(
+    prwalk('preferences', '--path').trim() === join(home, 'preferences.md') &&
+      readFileSync(join(home, 'preferences.md'), 'utf8') === defaults,
+    'prwalk preferences does not find the preferences created from skill/PREFERENCES.md',
   );
   const skills = join(work, 'skills');
   prwalk('skill', 'install', '--dir', skills);
