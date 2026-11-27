@@ -37,3 +37,8 @@ export function cardPaths(
   const paths = step.card.items.flatMap((item) => (item.path === undefined ? [] : [item.path]));
   return paths.length === 0 ? undefined : { paths, sentence: false };
 }
+
+/** Whether a card step points at paths in any of its sentences: the tree opens on its own. */
+export function pointsAtPaths(step: Step): boolean {
+  return step.say.some((_, index) => cardPaths(step, index) !== undefined);
+}

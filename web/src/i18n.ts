@@ -20,7 +20,9 @@ const en = {
   noSession: 'No walkthrough is open. Run',
   files: (count: number) => `${count} ${count === 1 ? 'file' : 'files'}`,
   filesLabel: 'Files in the diff',
-  allFiles: '← All files',
+  showTree: 'Show the files',
+  hideTree: 'Hide the files',
+  pickFile: 'Choose a file in the tree to see its changes.',
   from: (path: string) => `from ${path}`,
   binary: 'Binary file: no lines to show.',
   noLineChanges: 'No line changes.',
@@ -32,6 +34,10 @@ const en = {
     deleted: 'deleted',
     renamed: 'renamed',
   } satisfies Record<DiffFile['status'], string>,
+  statusShort: { added: 'A', modified: 'M', deleted: 'D', renamed: 'R' } satisfies Record<
+    DiffFile['status'],
+    string
+  >,
   level: (level: Script['level']) =>
     `Level: ${{ overview: 'overview', 'key-files': 'key files', full: 'full' }[level]}`,
   voice: (name: string) => `Voice: ${name}`,
@@ -80,13 +86,16 @@ const es: Texts = {
   noSession: 'No hay ningún recorrido abierto. Ejecuta',
   files: (count) => `${count} ${count === 1 ? 'fichero' : 'ficheros'}`,
   filesLabel: 'Ficheros del diff',
-  allFiles: '← Todos los ficheros',
+  showTree: 'Enseñar los ficheros',
+  hideTree: 'Ocultar los ficheros',
+  pickFile: 'Elige un fichero en el árbol para ver sus cambios.',
   from: (path) => `antes ${path}`,
   binary: 'Fichero binario: no hay líneas que mostrar.',
   noLineChanges: 'Sin cambios de líneas.',
   lines: (start, end, old) =>
     `${start === end ? `línea ${start}` : `líneas ${start}-${end}`}${old ? ' (antes)' : ''}`,
   status: { added: 'nuevo', modified: 'modificado', deleted: 'borrado', renamed: 'renombrado' },
+  statusShort: { added: 'N', modified: 'M', deleted: 'B', renamed: 'R' },
   level: (level) =>
     `Nivel: ${{ overview: 'resumen', 'key-files': 'ficheros clave', full: 'completo' }[level]}`,
   voice: (name) => `Voz: ${name}`,

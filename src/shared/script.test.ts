@@ -65,7 +65,7 @@ describe('validateScript', () => {
   it('allows a path only in card steps, as a repository path without a trailing slash', () => {
     const input = exampleCopy();
     input.steps[1]?.say.push({ text: 'This folder.', path: 'src/auth' });
-    const card = input.steps[0] as { card: { items: Array<{ path?: string }> } };
+    const card = input.steps[0] as unknown as { card: { items: Array<{ path?: string }> } };
     if (card.card.items[0] === undefined) throw new Error('fixture changed');
     card.card.items[0].path = 'src/auth/';
     expect(errorsOf(input)).toEqual([

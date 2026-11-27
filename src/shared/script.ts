@@ -151,7 +151,9 @@ export function validateScript(input: unknown): ValidationResult {
 function isRepoPath(value: string): boolean {
   return (
     !value.includes('\\') &&
-    value.split('/').every((segment) => segment.trim() !== '' && segment !== '.' && segment !== '..')
+    value
+      .split('/')
+      .every((segment) => segment.trim() !== '' && segment !== '.' && segment !== '..')
   );
 }
 
