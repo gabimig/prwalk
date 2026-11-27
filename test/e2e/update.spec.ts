@@ -20,4 +20,9 @@ test('shows a newer version in the header until it is hidden for that version', 
   // The daemon sends the script, then the newer version, to a viewer that connects.
   await expect(page.getByRole('banner').getByText(/^Nivel:/)).toBeVisible();
   await expect(page.getByText('Versión 99.0.0 disponible')).toBeHidden();
+
+  // Hidden for an older version, the newer one shows again.
+  await page.evaluate(() => localStorage.setItem('prwalk.update.dismissed', '98.0.0'));
+  await page.reload();
+  await expect(page.getByRole('banner').getByText('Versión 99.0.0 disponible')).toBeVisible();
 });
