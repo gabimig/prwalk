@@ -72,6 +72,12 @@ header {
   background: var(--bg-soft);
   min-width: 0;
 }
+.pr-head {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
 .pr-title {
   font-size: 15px;
   font-weight: 600;

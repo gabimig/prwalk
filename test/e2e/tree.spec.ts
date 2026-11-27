@@ -76,6 +76,9 @@ test('the button hides and shows the tree, which starts closed below 720 px', as
   await page.setViewportSize({ width: 600, height: 800 });
   const daemon = await startDaemon();
   await openAndStart(page, daemon, 1);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveAccessibleName(
+    'Add login rate limit',
+  );
   // The summary points at folders, so the tree opens on its own during that step only.
   await expect(tree(page)).toBeVisible();
 

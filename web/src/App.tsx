@@ -239,11 +239,13 @@ function Header({
   }
   return (
     <header>
-      <h1 className="pr-title">
+      <div className="pr-head">
         {toggle}
-        <span>{meta.title}</span>
-        {meta.number !== undefined && <span className="num">#{meta.number}</span>}
-      </h1>
+        <h1 className="pr-title">
+          <span>{meta.title}</span>
+          {meta.number !== undefined && <span className="num">#{meta.number}</span>}
+        </h1>
+      </div>
       <div className="pr-meta">
         {meta.kind !== 'patch' && (
           <span>
