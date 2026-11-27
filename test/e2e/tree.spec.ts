@@ -79,8 +79,11 @@ test('the button hides and shows the tree, which starts closed below 720 px', as
   await expect(page.getByRole('heading', { level: 1 })).toHaveAccessibleName(
     'Add login rate limit',
   );
-  // The summary points at folders, so the tree opens on its own during that step only.
+  // The summary points at folders, so the tree opens on its own during that step only, and the
+  // button can still hide it.
   await expect(tree(page)).toBeVisible();
+  await page.getByRole('button', { name: 'Ocultar los ficheros' }).click();
+  await expect(tree(page)).toBeHidden();
 
   await page.getByRole('button', { name: '2. rateLimiter · estructura' }).click();
   await expect(tree(page)).toBeHidden();
