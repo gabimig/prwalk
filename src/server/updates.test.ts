@@ -116,6 +116,14 @@ describe('checkForUpdate', () => {
     });
   });
 
+  it('still answers when it cannot save the check', async () => {
+    const home = join(tempDir(), 'a-file');
+    writeFileSync(home, '');
+    const { fetch } = redirectTo('v0.3.0');
+
+    expect(await latestVersion({ home, now: NOW, fetch, fresh: true })).toBe('0.3.0');
+  });
+
   it('neither asks nor reads the file with PRWALK_UPDATE_CHECK=0', async () => {
     const home = tempDir();
     writeFileSync(
