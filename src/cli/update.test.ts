@@ -91,12 +91,22 @@ describe('prwalk update', () => {
     expect(calls.filter((call) => !call.startsWith('progress'))).toEqual(['stop']);
   });
 
-  it('fails when the binary npm left does not report the newer version', async () => {
-    const { root } = globalInstall();
+  it('fails when the binary npm left does not run or does not report the newer version', async () => {
+    const { root, bin } = globalInstall();
     const { tools } = fakeTools('0.2.0', { versionOf: async () => '0.1.2' });
 
     await expect(runUpdate({ current: '0.1.2', packageRoot: root, tools })).rejects.toThrow(
       `npm finished, but the prwalk installed reports 0.1.2 instead of 0.2.0. Install it by hand with: ${INSTALL_COMMAND}`,
+    );
+    const broken = fakeTools('0.2.0', {
+      versionOf: async () => {
+        throw new Error('spawn EACCES');
+      },
+    });
+    await expect(
+      runUpdate({ current: '0.1.2', packageRoot: root, tools: broken.tools }),
+    ).rejects.toThrow(
+      `npm finished, but ${bin} does not run: spawn EACCES. Install it by hand with: ${INSTALL_COMMAND}`,
     );
   });
 
