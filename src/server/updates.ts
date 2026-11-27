@@ -100,31 +100,40 @@ const newer = (current: string, latest: string | undefined): UpdateInfo | undefi
 
 export type CheckOptions = {
   home: string;
-  current: string;
-  env?: NodeJS.ProcessEnv;
   now?: number;
   fetch?: typeof globalThis.fetch;
   timeoutMs?: number;
 };
 
 /**
- * The newer version, if there is one. Answers from `<home>/update-check.json` while it is less
- * than a day old; otherwise asks GitHub and saves the answer. Never throws: anything that goes
- * wrong is undefined, like being up to date. `PRWALK_UPDATE_CHECK=0` turns it off.
+ * The latest released version: from `<home>/update-check.json` while it is less than a day old
+ * (unless `fresh`), otherwise from GitHub, saving the answer. Throws, saying why, if GitHub
+ * cannot tell.
  */
-export async function checkForUpdate(options: CheckOptions): Promise<UpdateInfo | undefined> {
-  const { home, current, env = process.env, now = Date.now() } = options;
-  if (disabled(env)) return undefined;
-  const saved = readSaved(home);
+export async function latestVersion(options: CheckOptions & { fresh?: boolean }): Promise<string> {
+  const { home, now = Date.now() } = options;
+  const saved = options.fresh ? undefined : readSaved(home);
   if (saved !== undefined && now - saved.checkedAt >= 0 && now - saved.checkedAt < CHECK_EVERY_MS) {
-    return newer(current, saved.latest);
+    return saved.latest;
   }
+  const latest = await fetchLatestVersion(options.fetch, options.timeoutMs);
   try {
-    const latest = await fetchLatestVersion(options.fetch, options.timeoutMs);
-    try {
-      save(home, { checkedAt: now, latest });
-    } catch {}
-    return newer(current, latest);
+    save(home, { checkedAt: now, latest });
+  } catch {}
+  return latest;
+}
+
+/**
+ * The newer version, if there is one, asking GitHub at most once a day (see latestVersion).
+ * Never throws: anything that goes wrong is undefined, like being up to date.
+ * `PRWALK_UPDATE_CHECK=0` turns it off.
+ */
+export async function checkForUpdate(
+  options: CheckOptions & { current: string; env?: NodeJS.ProcessEnv },
+): Promise<UpdateInfo | undefined> {
+  if (disabled(options.env ?? process.env)) return undefined;
+  try {
+    return newer(options.current, await latestVersion(options));
   } catch {
     return undefined;
   }

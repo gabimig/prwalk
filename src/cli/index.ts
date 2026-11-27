@@ -15,6 +15,7 @@ import {
   stopCommand,
 } from './session-commands.js';
 import { installSkill, preferencesCommand, printGuide } from './skill-commands.js';
+import { updateCommand } from './update-command.js';
 import { validateCommand } from './validate.js';
 import {
   printVoiceGuide,
@@ -298,6 +299,17 @@ voice
   .command('guide')
   .description('Print the guide to writing a voice adapter.')
   .action(action(async () => printVoiceGuide()));
+
+program
+  .command('update')
+  .description('Update prwalk to the latest release, if there is a newer one.')
+  .option('--check', 'only say whether there is a newer version; install nothing')
+  .option('--json', 'print the result as JSON')
+  .addHelpText(
+    'after',
+    '\nStops the daemon (and the walkthrough open in it), installs the latest release with npm into\nthe same global npm folder, and checks the version installed. It tells how it goes on stderr.\nOnly a prwalk installed with npm install -g updates itself. It does not touch the skill, the\npreferences or the voices.',
+  )
+  .action(action(updateCommand));
 
 program
   .command('stop')

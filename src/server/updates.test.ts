@@ -2,7 +2,13 @@ import { readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { tempDir } from '../../test/git-repo.js';
-import { checkForUpdate, isNewer, RELEASES_URL, versionFromLocation } from './updates.js';
+import {
+  checkForUpdate,
+  isNewer,
+  latestVersion,
+  RELEASES_URL,
+  versionFromLocation,
+} from './updates.js';
 
 const DAY = 24 * 60 * 60 * 1000;
 const NOW = Date.parse('2026-11-27T12:00:00Z');
@@ -43,7 +49,7 @@ describe('versions', () => {
 });
 
 describe('checkForUpdate', () => {
-  it('answers from update-check.json while it is less than a day old, without asking', async () => {
+  it('answers from update-check.json while it is less than a day old, unless asked for a fresh answer', async () => {
     const home = tempDir();
     const file = join(home, 'update-check.json');
     writeFileSync(file, JSON.stringify({ checkedAt: NOW - DAY + 60_000, latest: '0.2.0' }));
@@ -53,6 +59,8 @@ describe('checkForUpdate', () => {
 
     expect(update).toEqual({ current: '0.1.2', latest: '0.2.0' });
     expect(requests).toEqual([]);
+    expect(await latestVersion({ home, now: NOW, fetch, fresh: true })).toBe('9.0.0');
+    expect(requests).toHaveLength(1);
   });
 
   it('asks GitHub once the result is a day old, with nothing about the user, and saves it', async () => {

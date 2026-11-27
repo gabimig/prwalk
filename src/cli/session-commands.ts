@@ -359,7 +359,7 @@ export async function readSession(daemon: Daemon): Promise<SessionReply | undefi
   return reply.body as SessionReply;
 }
 
-async function waitForExit(pid: number): Promise<void> {
+export async function waitForExit(pid: number): Promise<void> {
   const deadline = Date.now() + 5000;
   while (Date.now() < deadline) {
     try {
