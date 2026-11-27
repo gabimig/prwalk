@@ -17,6 +17,7 @@ Cada tarea es una rama, una PR en borrador y un entregable que se puede comproba
 | 09 | `[x]` | Repositorio público y versión 0.1 | [plan](tareas/09-plan-version-publica.md) | https://github.com/gabimig/prwalk/pull/9 |
 | 10 | `[x]` | Preferencias del usuario | [plan](tareas/10-plan-preferencias-del-usuario.md) | https://github.com/gabimig/prwalk/pull/2 |
 | 11 | `[~]` | Árbol de ficheros y rutas en las tarjetas | [plan](tareas/11-plan-arbol-de-ficheros.md) | https://github.com/gabimig/prwalk/pull/3 |
+| 12 | `[~]` | Aviso de versión nueva y `prwalk update` | [plan](tareas/12-plan-aviso-de-version-nueva.md) | https://github.com/gabimig/prwalk/pull/4 |
 
 ## 01 · Esqueleto y contrato
 

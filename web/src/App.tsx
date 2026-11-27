@@ -1,5 +1,5 @@
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
-import type { ViewerFocus, ViewerVoice } from '../../src/shared/protocol.js';
+import type { ViewerFocus, ViewerUpdate, ViewerVoice } from '../../src/shared/protocol.js';
 import { buildFileTree } from '../../src/shared/tree.js';
 import {
   type LiveMessage,
@@ -14,12 +14,14 @@ import { hasInteracted } from './interaction.js';
 import { Player } from './Player.js';
 import { AsideQueue, type AsideView } from './playback/aside.js';
 import { PAUSES } from './playback/engine.js';
+import { UpdateNotice } from './UpdateNotice.js';
 import { createVoice, voiceFor } from './voice/create.js';
 import { SwitchableVoice } from './voice/switchable.js';
 import type { VoiceProvider } from './voice/voice.js';
 
 export function App() {
-  const { connection, session, focus, script, voice, reportPosition, subscribe } = useDaemon();
+  const { connection, session, focus, script, voice, update, reportPosition, subscribe } =
+    useDaemon();
   const lang = uiLanguage(script?.script.lang, navigator.language);
   const t = TEXTS[lang];
   const loaded = session.status === 'ready' ? session.session : undefined;
@@ -68,6 +70,7 @@ export function App() {
             badges={[t.level(script.script.level)]}
             extra={voiceShown}
             toggle={treeToggle}
+            update={update}
           />
         )}
       />
@@ -78,6 +81,7 @@ export function App() {
         {loaded && (
           <Header
             session={loaded}
+            update={update}
             toggle={<TreeToggle open={treeOpen} onToggle={() => setTreeOpen(!treeOpen)} />}
           />
         )}
@@ -222,6 +226,7 @@ function Header({
   badges = [],
   extra,
   toggle,
+  update,
 }: {
   session: LoadedSession;
   badges?: string[];
@@ -229,6 +234,8 @@ function Header({
   extra?: ReactNode;
   /** The button that shows and hides the file tree, before the title. */
   toggle?: ReactNode;
+  /** A newer prwalk, shown at the right. */
+  update: ViewerUpdate | null;
 }) {
   const t = useTexts();
   let additions = 0;
@@ -239,31 +246,34 @@ function Header({
   }
   return (
     <header>
-      <div className="pr-head">
-        {toggle}
-        <h1 className="pr-title">
-          <span>{meta.title}</span>
-          {meta.number !== undefined && <span className="num">#{meta.number}</span>}
-        </h1>
-      </div>
-      <div className="pr-meta">
-        {meta.kind !== 'patch' && (
+      <div className="header-main">
+        <div className="pr-head">
+          {toggle}
+          <h1 className="pr-title">
+            <span>{meta.title}</span>
+            {meta.number !== undefined && <span className="num">#{meta.number}</span>}
+          </h1>
+        </div>
+        <div className="pr-meta">
+          {meta.kind !== 'patch' && (
+            <span>
+              <span className="branch">{meta.headRef}</span> →{' '}
+              <span className="branch">{meta.baseRef}</span>
+            </span>
+          )}
           <span>
-            <span className="branch">{meta.headRef}</span> →{' '}
-            <span className="branch">{meta.baseRef}</span>
+            {t.files(files.length)} · <span className="plus">+{additions}</span>{' '}
+            <span className="minus">−{deletions}</span>
           </span>
-        )}
-        <span>
-          {t.files(files.length)} · <span className="plus">+{additions}</span>{' '}
-          <span className="minus">−{deletions}</span>
-        </span>
-        {badges.map((badge) => (
-          <span key={badge} className="badge">
-            {badge}
-          </span>
-        ))}
-        {extra}
+          {badges.map((badge) => (
+            <span key={badge} className="badge">
+              {badge}
+            </span>
+          ))}
+          {extra}
+        </div>
       </div>
+      <UpdateNotice update={update} />
     </header>
   );
 }

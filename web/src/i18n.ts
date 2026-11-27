@@ -76,6 +76,9 @@ const en = {
   pauseHint: 'pause',
   supersededTitle: 'Open in another tab',
   supersededText: 'This walkthrough has been opened in another tab, which plays it now.',
+  updateAvailable: (version: string) => `Version ${version} available`,
+  updateHint: 'Tell your agent to update PRWalk',
+  updateDismiss: (version: string) => `Hide the notice about version ${version}`,
 };
 
 export type Texts = typeof en;
@@ -131,6 +134,9 @@ const es: Texts = {
   pauseHint: 'pausa',
   supersededTitle: 'Abierto en otra pestaña',
   supersededText: 'Este recorrido se ha abierto en otra pestaña, que es la que lo reproduce ahora.',
+  updateAvailable: (version) => `Versión ${version} disponible`,
+  updateHint: 'Dile a tu agente que actualice PRWalk',
+  updateDismiss: (version) => `Ocultar el aviso de la versión ${version}`,
 };
 
 export const TEXTS: Record<UiLanguage, Texts> = { en, es };

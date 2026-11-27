@@ -18,7 +18,7 @@ Ask your agent for a walkthrough and a page opens next to your chat. A voice exp
 - **It adapts to you.** It starts with the overview and goes into detail where you ask. Your preferences live in a file that you or your agent edit.
 - **In your language.** The narration follows the language you speak to your agent.
 - **A voice you can stand.** It starts with your browser's voices, installs a natural-sounding local one with one command, or uses any engine you plug in.
-- **Private.** It runs on your machine. Your code and the narration stay there.
+- **Private.** It runs on your machine. Your code and the narration stay there. The only request it makes on its own is, once a day, which version is the latest on GitHub; it sends nothing with it, and `PRWALK_UPDATE_CHECK=0` turns it off.
 - **Works with your agent.** Claude Code, or anything else that can run a command. No MCP server, no account, no API key.
 
 ## Install
@@ -32,7 +32,7 @@ prwalk skill install
 
 The second command adds the PRWalk skill to Claude Code. For another agent, use `prwalk skill install --dir <its skills folder>`, or tell it to run `prwalk skill` and follow the guide it prints.
 
-The easy way: give your agent this page and say **"install this"**.
+The easy way: give your agent this page and say **"install this"**. When a new version is out, your agent tells you; to update, say **"update PRWalk"**.
 
 > **If you are the agent installing it:** the skill is not loaded in this conversation yet, and it does not need to be. When the user asks for a walkthrough, run `prwalk skill` and follow the guide.
 

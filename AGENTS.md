@@ -16,7 +16,8 @@ Planning docs (in Spanish) live in `docs/plan/`: start with `docs/plan/ESTADO.md
 - **File tree:** the changed files, by folder, always on the left of the diff (a button hides it; hidden by default below 720 px). The file being explained is marked. Card steps may point at folders or files (`path` on an item or a sentence) and the tree lights them while they are named.
 - **Voice:** spoken by the page, not by the agent, with a silence after each sentence and a longer one between steps. Local by default: the browser's Web Speech API. Any other engine plugs in as a voice adapter (an ES module the daemon loads from the path in `config.json`); a cloud voice only if the user plugs in their own adapter for one. The narration language is the language the user speaks to the agent.
 - **Agent-agnostic:** a small skill plus the CLI. No MCP server. The skill stub must stay tiny; the full guide is printed by the CLI.
-- **Privacy:** code and narration never leave the machine (other than what `gh` already does, and what a cloud voice adapter the user chose sends).
+- **Privacy:** code and narration never leave the machine (other than what `gh` already does, and what a cloud voice adapter the user chose sends). The only request prwalk makes on its own is, at most once a day, which version is the latest release on GitHub, with nothing about the user; `PRWALK_UPDATE_CHECK=0` turns it off.
+- **Updates:** when a newer release is out, `prwalk skill` ends with a notice for the agent, `prwalk open` adds a line and the page shows a tag in the header. Only the user, through the agent, updates: `prwalk update`. The page never runs anything.
 - **Out of scope for v1:** leaving review comments (local or on GitHub), more than one walkthrough session at a time.
 
 ## Architecture
@@ -43,13 +44,17 @@ src/server/   The local daemon.
   daemon.ts        The daemon process: token, state file, config, PRWALK_IDLE_MINUTES.
   state.ts         ~/.prwalk (PRWALK_HOME): daemon.json, daemon.log, config.json and
                    preferences.md.
+  updates.ts       Whether a newer prwalk has been released: GitHub's redirect to the latest
+                   release, asked at most once a day and kept in update-check.json.
 src/cli/      The `prwalk` binary. Thin: parses arguments, starts the daemon if needed, talks
               to it over HTTP, prints results.
   index.ts         Commands and options (commander).
   session-commands.ts  open, diff, play, focus, status, stop.
   live-commands.ts     pause, resume, goto, say, replace, wait.
   skill-commands.ts    skill, skill install, preferences: the guide followed by the user's
-                       preferences (<PRWALK_HOME>/preferences.md, created from the defaults).
+                       preferences (<PRWALK_HOME>/preferences.md, created from the defaults)
+                       and the notice of a newer version.
+  update-command.ts    update: installs the latest release with npm into the same global prefix.
   voice-commands.ts    voice, voice list, voice install, voice remove, voice use, voice test,
                        voice guide.
   voice-catalog.ts     The catalog of installable voices; installing and removing one in
@@ -91,7 +96,7 @@ Who owns what:
 
 ## Commands
 
-`prwalk open [pr | --base <ref> | --patch <file>]`, `diff [--file <path>]`, `validate <file>`, `play <file> | --clear`, `focus <file> --lines <a-b> | --clear`, `status`, `wait`, `pause`, `resume`, `goto <step>`, `say <text> [--question] [--file --lines] [--resume]`, `replace --from <step> <file>`, `voice`, `voice list`, `voice install <name> [--option k=v]`, `voice remove <name>`, `voice use <browser | adapter> [--option k=v]`, `voice test [text] [--lang] [--out]`, `voice guide`, `skill`, `skill install [--dir]`, `preferences [--path | --reset]`, `stop`, and the internal `daemon`. Every command but `skill`, `voice guide` and `daemon` takes `--json`; `prwalk <command> --help` has the details. `docs/commands.md` has a one-line description of each.
+`prwalk open [pr | --base <ref> | --patch <file>]`, `diff [--file <path>]`, `validate <file>`, `play <file> | --clear`, `focus <file> --lines <a-b> | --clear`, `status`, `wait`, `pause`, `resume`, `goto <step>`, `say <text> [--question] [--file --lines] [--resume]`, `replace --from <step> <file>`, `voice`, `voice list`, `voice install <name> [--option k=v]`, `voice remove <name>`, `voice use <browser | adapter> [--option k=v]`, `voice test [text] [--lang] [--out]`, `voice guide`, `skill`, `skill install [--dir]`, `preferences [--path | --reset]`, `update [--check]`, `stop`, and the internal `daemon`. Every command but `skill`, `voice guide` and `daemon` takes `--json`; `prwalk <command> --help` has the details. `docs/commands.md` has a one-line description of each.
 
 ## Releases
 
