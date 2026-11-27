@@ -212,9 +212,9 @@ export function Player({
   const forced = step !== undefined && pointsAtPaths(step) && dismissed !== state.step;
   const treeShown = treeOpen || forced;
   const toggleTree = () => {
-    if (!treeShown) setTreeOpen(true);
-    else if (treeOpen) setTreeOpen(false);
-    else setDismissed(state.step);
+    if (!treeShown) return setTreeOpen(true);
+    if (treeOpen) setTreeOpen(false);
+    if (forced) setDismissed(state.step);
   };
 
   return (

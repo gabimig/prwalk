@@ -105,7 +105,11 @@ test('with browser storage blocked the tree still starts by width and the button
   await page.getByRole('button', { name: '2. rateLimiter · estructura' }).click();
   await expect(tree(page)).toBeVisible();
 
+  // The summary points at folders too: one click hides the tree all the same.
+  await page.getByRole('button', { name: '1. Resumen' }).click();
   await page.getByRole('button', { name: 'Ocultar los ficheros' }).click();
+  await expect(tree(page)).toBeHidden();
+  await page.getByRole('button', { name: '2. rateLimiter · estructura' }).click();
   await expect(tree(page)).toBeHidden();
 });
 
