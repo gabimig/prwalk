@@ -105,3 +105,18 @@ test('with browser storage blocked the tree still starts by width and the button
   await page.getByRole('button', { name: 'Ocultar los ficheros' }).click();
   await expect(tree(page)).toBeHidden();
 });
+
+test('without a script a file clicked in the tree is shown over the focus of the agent', async ({
+  page,
+}) => {
+  const daemon = await startDaemon();
+  daemon.prwalk('play', '--clear');
+  await page.goto(`${daemon.url}?voice=silent`);
+  daemon.prwalk('focus', 'src/auth/rateLimiter.ts', '--lines', '1-3');
+  await expect(page.locator('.file-head')).toContainText('src/auth/rateLimiter.ts');
+
+  await row(page, 'src/config/auth.ts').click();
+
+  await expect(page.locator('.file-head')).toContainText('src/config/auth.ts');
+  await expect(row(page, 'src/config/auth.ts')).toHaveAttribute('aria-current', 'true');
+});

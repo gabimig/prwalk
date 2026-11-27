@@ -20,23 +20,32 @@ import type { VoiceProvider } from './voice/voice.js';
 
 export function App() {
   const { connection, session, focus, script, voice, reportPosition, subscribe } = useDaemon();
-  // A file the user opened from the tree. Any focus from the agent, or a new session, takes
-  // over from it, so it only counts while both are the ones it was opened under.
-  const [opened, setOpened] = useState<{
-    path: string;
-    focus: ViewerFocus | null;
-    session: SessionState;
-  } | null>(null);
-  const openedPath =
-    opened !== null && opened.focus === focus && opened.session === session ? opened.path : null;
-  const open = (path: string | null) => setOpened(path === null ? null : { path, focus, session });
-
   const lang = uiLanguage(script?.script.lang, navigator.language);
   const t = TEXTS[lang];
   const loaded = session.status === 'ready' ? session.session : undefined;
   const { aside, toggle } = useLooseAnswers(subscribe, script === null, t, voice);
-  const shownFocus = aside?.answer.focus ?? focus;
-  const shown = loaded?.files.find(({ file }) => file.path === (shownFocus?.file ?? openedPath));
+  const answerFocus = aside?.answer.focus;
+  // A file the user opened from the tree, shown over any focus. A new focus from the agent, an
+  // answer with a focus of its own, or a new session takes over from it, so it only counts while
+  // those are the ones it was opened under.
+  const [opened, setOpened] = useState<{
+    path: string;
+    focus: ViewerFocus | null;
+    answerFocus: ViewerFocus | undefined;
+    session: SessionState;
+  } | null>(null);
+  const openedPath =
+    opened !== null &&
+    opened.focus === focus &&
+    opened.session === session &&
+    (answerFocus === undefined || answerFocus === opened.answerFocus)
+      ? opened.path
+      : null;
+  const open = (path: string | null) =>
+    setOpened(path === null ? null : { path, focus, answerFocus, session });
+
+  const shownFocus = openedPath !== null ? null : (answerFocus ?? focus);
+  const shown = loaded?.files.find(({ file }) => file.path === (openedPath ?? shownFocus?.file));
   const nodes = useMemo(() => buildFileTree(loaded?.files.map(({ file }) => file) ?? []), [loaded]);
   const [treeOpen, setTreeOpen] = useTreeOpen();
 
@@ -83,7 +92,7 @@ export function App() {
                 file={shown.file}
                 metadata={shown.metadata}
                 focus={shownFocus ?? undefined}
-                label={aside?.answer.focus === undefined ? undefined : t.answer}
+                label={openedPath === null && answerFocus !== undefined ? t.answer : undefined}
               />
             ) : loaded ? (
               <p className="notice">{t.pickFile}</p>
