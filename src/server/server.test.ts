@@ -245,6 +245,28 @@ describe('viewer connection', () => {
   });
 });
 
+describe('newer version', () => {
+  it('checks at start and on every open, tells the viewers, and gives one that connects the last answer', async () => {
+    const answers = [undefined, { current: '0.1.2', latest: '0.2.0' }];
+    let checks = 0;
+    const running = await start({ checkUpdate: async () => answers[checks++] });
+    const viewer = await connect(running);
+    expect(await viewer.next()).toEqual({ type: 'focus', focus: null });
+
+    await putSession(running, input);
+    expect(await viewer.next()).toEqual({ type: 'session' });
+    const update = { type: 'update', update: { current: '0.1.2', latest: '0.2.0' } };
+    expect(await viewer.next()).toEqual(update);
+    expect(checks).toBe(2);
+
+    const later = await connect(running);
+    expect([await later.next(), await later.next()]).toEqual([
+      { type: 'focus', focus: null },
+      update,
+    ]);
+  });
+});
+
 describe('idle shutdown', () => {
   /** A server that shuts down after `idleMs` alone; `idled()` says whether it has. */
   async function idleServer(idleMs: number) {
