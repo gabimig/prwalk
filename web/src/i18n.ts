@@ -34,10 +34,6 @@ const en = {
     deleted: 'deleted',
     renamed: 'renamed',
   } satisfies Record<DiffFile['status'], string>,
-  statusShort: { added: 'A', modified: 'M', deleted: 'D', renamed: 'R' } satisfies Record<
-    DiffFile['status'],
-    string
-  >,
   level: (level: Script['level']) =>
     `Level: ${{ overview: 'overview', 'key-files': 'key files', full: 'full' }[level]}`,
   voice: (name: string) => `Voice: ${name}`,
@@ -98,7 +94,6 @@ const es: Texts = {
   lines: (start, end, old) =>
     `${start === end ? `línea ${start}` : `líneas ${start}-${end}`}${old ? ' (antes)' : ''}`,
   status: { added: 'nuevo', modified: 'modificado', deleted: 'borrado', renamed: 'renombrado' },
-  statusShort: { added: 'N', modified: 'M', deleted: 'B', renamed: 'R' },
   level: (level) =>
     `Nivel: ${{ overview: 'resumen', 'key-files': 'ficheros clave', full: 'completo' }[level]}`,
   voice: (name) => `Voz: ${name}`,

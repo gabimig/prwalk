@@ -1,6 +1,23 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { type CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
+import type { DiffFile } from '../../src/shared/diff.js';
 import { pathTargets, type TreeNode } from '../../src/shared/tree.js';
 import { useTexts } from './i18n.js';
+
+// Icons drawn after GitHub's Octicons (MIT), inline so the page loads nothing more.
+const FOLDER =
+  'M1.75 1A1.75 1.75 0 0 0 0 2.75v10.5C0 14.216.784 15 1.75 15h12.5A1.75 1.75 0 0 0 16 13.25v-8.5A1.75 1.75 0 0 0 14.25 3H7.5a.25.25 0 0 1-.2-.1l-.9-1.2C6.07 1.26 5.55 1 5 1H1.75Z';
+const FILE =
+  'M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Zm1.75-.25a.25.25 0 0 0-.25.25v12.5c0 .138.112.25.25.25h9.5a.25.25 0 0 0 .25-.25V6h-2.75A1.75 1.75 0 0 1 9 4.25V1.5Zm6.75.062V4.25c0 .138.112.25.25.25h2.688l-.011-.013-2.914-2.914-.013-.011Z';
+const BOX =
+  'M13.25 1c.966 0 1.75.784 1.75 1.75v10.5A1.75 1.75 0 0 1 13.25 15H2.75A1.75 1.75 0 0 1 1 13.25V2.75C1 1.784 1.784 1 2.75 1ZM2.75 2.5a.25.25 0 0 0-.25.25v10.5c0 .138.112.25.25.25h10.5a.25.25 0 0 0 .25-.25V2.75a.25.25 0 0 0-.25-.25Z';
+const STATUS: Record<DiffFile['status'], string> = {
+  added:
+    'M8 4a.75.75 0 0 1 .75.75v2.5h2.5a.75.75 0 0 1 0 1.5h-2.5v2.5a.75.75 0 0 1-1.5 0v-2.5h-2.5a.75.75 0 0 1 0-1.5h2.5v-2.5A.75.75 0 0 1 8 4Z',
+  modified: 'M8 10a2 2 0 1 1-.001-3.999A2 2 0 0 1 8 10Z',
+  deleted: 'M11.25 8.75h-6.5a.75.75 0 0 1 0-1.5h6.5a.75.75 0 0 1 0 1.5Z',
+  renamed:
+    'M11.78 8.53l-3.25 3.25a.749.749 0 0 1-1.06-1.06l1.97-1.97H4.75a.75.75 0 0 1 0-1.5h4.69L7.47 5.28a.75.75 0 0 1 1.06-1.06l3.25 3.25a.75.75 0 0 1 0 1.06Z',
+};
 
 /** What a card step points at: its paths, and whether the rest of the tree is dimmed more. */
 export type TreeLight = { paths: string[]; sentence: boolean };
@@ -156,11 +173,14 @@ export function FileTree({ nodes, current, light, onOpen }: Props) {
             if (onKey(node, event.key)) event.preventDefault();
           }}
         >
-          <div className="row" style={{ paddingLeft: 8 + depth * 14 }} title={node.path}>
+          <div className="row" style={{ paddingLeft: 8 + depth * 16 }} title={node.path}>
             {node.kind === 'dir' ? (
               <>
                 <svg className="chevron" viewBox="0 0 16 16" aria-hidden="true">
                   <path d="M6 4l4 4-4 4" />
+                </svg>
+                <svg className="icon folder" viewBox="0 0 16 16" aria-hidden="true">
+                  <path d={FOLDER} />
                 </svg>
                 <span className="name">{node.name}</span>
                 <span className="count" title={t.files(node.files)}>
@@ -169,9 +189,9 @@ export function FileTree({ nodes, current, light, onOpen }: Props) {
               </>
             ) : (
               <>
-                <span className={`st ${node.file.status}`} title={t.status[node.file.status]}>
-                  {t.statusShort[node.file.status]}
-                </span>
+                <svg className="icon file" viewBox="0 0 16 16" aria-hidden="true">
+                  <path d={FILE} />
+                </svg>
                 <span className="name">{node.name}</span>
                 <span className="counts">
                   {node.file.binary ? (
@@ -183,12 +203,18 @@ export function FileTree({ nodes, current, light, onOpen }: Props) {
                     </>
                   )}
                 </span>
+                <svg className={`st ${node.file.status}`} viewBox="0 0 16 16" role="img">
+                  <title>{t.status[node.file.status]}</title>
+                  <path d={`${BOX}${STATUS[node.file.status]}`} />
+                </svg>
               </>
             )}
           </div>
           {node.kind === 'dir' && open && (
             // biome-ignore lint/a11y/useSemanticElements: an ARIA tree groups its children like this.
-            <ul role="group">{renderNodes(node.children, depth + 1)}</ul>
+            <ul role="group" style={{ '--guide': `${8 + depth * 16 + 4}px` } as CSSProperties}>
+              {renderNodes(node.children, depth + 1)}
+            </ul>
           )}
         </li>
       );
@@ -265,7 +291,7 @@ export function TreeToggle({ open, onToggle }: { open: boolean; onToggle: () => 
       }}
     >
       <svg viewBox="0 0 16 16" aria-hidden="true">
-        <path d="M2 3h12v10H2zM3.5 4.5v7h3v-7z" fillRule="evenodd" />
+        <path d="M1.75 1h12.5c.966 0 1.75.784 1.75 1.75v10.5A1.75 1.75 0 0 1 14.25 15H1.75A1.75 1.75 0 0 1 0 13.25V2.75C0 1.784.784 1 1.75 1ZM1.5 2.75v10.5c0 .138.112.25.25.25H5v-11H1.75a.25.25 0 0 0-.25.25ZM6.5 13.5h7.75a.25.25 0 0 0 .25-.25V2.75a.25.25 0 0 0-.25-.25H6.5Z" />
       </svg>
     </button>
   );
