@@ -11,6 +11,7 @@ Ask your agent for a walkthrough and a page opens next to your chat. A voice exp
 ## Why you will like it
 
 - **It explains, it does not recite.** A summary first, then the files in the order that makes them understandable, then what the tests cover and what they do not. Not the order of the diff.
+- **You see the map.** The files of the PR are in a tree on the left, and the agent points at each zone of the change while it explains it.
 - **You stay in control.** Play, pause, step back, jump to any step, replay the last one. Space, ← and → do the same.
 - **Interrupt like on a real call.** "Why not a transaction here?", "skip the tests", "go deeper from now on": say it in your agent's chat and the walkthrough adapts.
 - **As long as you want it.** A two-minute overview, the key files, or every hunk.

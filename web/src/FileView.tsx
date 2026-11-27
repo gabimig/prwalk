@@ -30,11 +30,10 @@ type Props = {
   note?: string | undefined;
   /** A tag saying this is not a step of the script, like "Answer". */
   label?: string | undefined;
-  onBack?: (() => void) | undefined;
 };
 
 /** One file of the diff with its header; with a focus, its range highlighted and centred. */
-export function FileView({ file, metadata, focus, note, label, onBack }: Props) {
+export function FileView({ file, metadata, focus, note, label }: Props) {
   const t = useTexts();
   const view = useRef<CodeViewHandle<undefined, undefined>>(null);
   const section = useRef<HTMLElement>(null);
@@ -99,11 +98,6 @@ export function FileView({ file, metadata, focus, note, label, onBack }: Props) 
   return (
     <section className="file" aria-label={file.path} ref={section}>
       <div className="file-head">
-        {onBack && (
-          <button type="button" className="back" onClick={onBack}>
-            {t.allFiles}
-          </button>
-        )}
         {label !== undefined && <span className="aside-tag">{label}</span>}
         <StatusTag status={file.status} />
         <span className="path">{file.path}</span>

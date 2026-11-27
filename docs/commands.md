@@ -53,6 +53,7 @@ Answers are said in the script's language, hence the Spanish one.
 
 ## The viewer
 
+- **File tree:** the changed files of the diff, by folder, on the left. The file being explained is marked; a summary card lights each folder as the agent names it. Click a folder to fold it, a file to see it (that pauses the walkthrough until you play again). The button before the title hides and shows it; it starts hidden in a page narrower than 720 px, and your choice is remembered. With the keyboard focus in it, the arrows move and fold, and Enter or Space opens.
 - **Step strip:** every step of the walkthrough; click one to jump to it.
 - **Controls:** restart the walkthrough, previous step, restart step, play and pause, next step.
 - **Shortcuts:** Space plays and pauses, ← and → go to the previous and next step, R restarts the step.

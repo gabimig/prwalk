@@ -11,26 +11,28 @@
         "lead": "Limita los intentos fallidos de login por correo.",
         "items": [
           {
-            "title": "src/auth/rateLimiter.ts",
-            "text": "Nueva clase que cuenta fallos y decide si un correo está bloqueado."
-          },
-          {
-            "title": "src/auth/loginController.ts",
-            "text": "Consulta el límite antes de verificar y registra cada fallo."
+            "title": "src/auth",
+            "text": "Una clase nueva que cuenta fallos y el controlador de login que la usa.",
+            "path": "src/auth"
           },
           {
             "title": "src/config/auth.ts",
-            "text": "Máximo de intentos y duración de la ventana."
+            "text": "Máximo de intentos y duración de la ventana.",
+            "path": "src/config/auth.ts"
           },
           {
-            "title": "test/auth/rateLimiter.test.ts",
-            "text": "Tests unitarios de la clase nueva."
+            "title": "test/auth",
+            "text": "Tests unitarios de la clase nueva.",
+            "path": "test/auth"
           }
         ]
       },
       "say": [
         "Esta PR añade un límite de intentos al login.",
-        "Son cuatro ficheros: una clase nueva que cuenta los fallos, el controlador de login que la usa, dos valores de configuración y los tests.",
+        {
+          "text": "Son cuatro ficheros. La lógica está en src/auth: una clase nueva que cuenta los fallos y el controlador de login que la usa; aparte hay dos valores de configuración y los tests.",
+          "path": "src/auth"
+        },
         "Vamos a verlos en ese orden."
       ]
     },

@@ -37,7 +37,7 @@ Take it from what the user asked; if they did not say, use the level in the user
 | Key files     | `key-files` | Summary, the files and ranges that carry the change, tests, closing             | 6 to 12 steps     |
 | Full          | `full`      | Every meaningful hunk; trivial ones grouped and mentioned in passing            | As many as needed |
 
-`overview` is the highest-level walkthrough. Its summary card opens by saying this is the short version and that they can ask in the chat for more detail on any part.
+`overview` is the highest-level walkthrough. Its main part is the tour of the zones in the summary card (section 4). The summary card opens by saying this is the short version and that they can ask in the chat for more detail on any part.
 
 Lock files, generated code and pure renames are named in the summary and not shown, at every level.
 
@@ -45,7 +45,7 @@ Lock files, generated code and pure renames are named in the summary and not sho
 
 Not alphabetical, and not the order of the diff. A good default:
 
-1. A summary card: what the PR does and the files involved, each with one line on its role.
+1. A summary card that presents the change by zones. When the PR touches more than one folder, each item is a zone (a folder, or a single file that matters) with its `path` and one line on its role, and the narration goes through them one by one with sentences that carry the same `path`, so the listener sees each zone light up in the file tree while you name it. With one or two files, the files themselves are enough.
 2. The core of the change: the new type, function or module everything else depends on.
 3. Where it is used: callers, wiring, routes.
 4. Configuration, migrations and other supporting changes.
@@ -81,13 +81,17 @@ A JSON file:
         "heading": "What this PR does",
         "lead": "Limits failed login attempts per email.",
         "items": [
-          { "title": "src/auth/rateLimiter.ts", "text": "New class that counts failures." },
-          { "title": "src/auth/loginController.ts", "text": "Checks the limit before verifying." }
+          { "title": "src/auth", "text": "The limiter and the login that uses it.", "path": "src/auth" },
+          { "title": "src/config/auth.ts", "text": "Two new settings.", "path": "src/config/auth.ts" },
+          { "title": "test/auth", "text": "Unit tests of the limiter.", "path": "test/auth" }
         ]
       },
       "say": [
         "This PR adds a limit on failed logins.",
-        "There are four files. We will take them in that order."
+        { "text": "The logic lives in the auth folder: a new limiter and the login that uses it.", "path": "src/auth" },
+        { "text": "The configuration gets two new settings.", "path": "src/config/auth.ts" },
+        { "text": "And the tests cover the limiter.", "path": "test/auth" },
+        "We will take them in that order."
       ]
     },
     {
@@ -111,7 +115,8 @@ Rules:
 - Each step has exactly one of `focus` (code) or `card` (no code).
 - `focus.lines` is `[first, last]`, inclusive, in the numbering of `prwalk diff --file`, and must lie inside one hunk. Line numbers are of the new version of the file; add `"side": "old"` to point at deleted lines.
 - `note` is an optional short label shown next to the file name. Focus steps only.
-- A sentence may be an object with its own `lines` to narrow the highlight while it is spoken. Keep it inside the step's own range. Focus steps only: sentences of a card step are plain strings.
+- A sentence may be an object with its own `lines` to narrow the highlight while it is spoken. Keep it inside the step's own range. Focus steps only.
+- In a card step, an item and a sentence may have a `path`: a folder or a file of the diff, from the root of the repository, with `/` and no trailing slash (`"src/auth"`). While the card plays, the file tree lights the paths of its items; while a sentence with a `path` is said, it lights that one alone and marks the item with the same `path`. A folder counts if it holds at least one changed file; a renamed file answers to its old path too. Card steps only: the file of a focus step lights up in the tree on its own.
 - A card works best with three to seven `items`. An item's `title` is free text; a file path is common in the summary card but not required.
 - Unknown keys are rejected.
 
@@ -137,7 +142,7 @@ prwalk say "The counter expires by itself, fifteen minutes after the first failu
 ```
 
 - `--question` is their question as you understood it; it is shown above your answer in the history.
-- `--file` and `--lines` show any code in the diff while you answer. Leave them out if no code is needed.
+- `--file` and `--lines` show any code in the diff while you answer. Leave them out if no code is needed. To "what is in this folder?", show the most representative file of that folder.
 - Write the answer for the ear, like the narration, in the user's language, and `--question` too. Keep it to two to four sentences; they can ask again.
 - After the answer the viewer stays paused so they can follow up. Add `--resume` only if they asked you to carry on.
 - The command returns at once and suggests `prwalk wait`. You do not need it: reply in the chat and end your turn.

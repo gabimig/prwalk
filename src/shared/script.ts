@@ -26,14 +26,28 @@ export const focusSchema = z.strictObject({
   lines: lineRange,
 });
 
+/** A file or folder of the repository, like "src/auth": what a card points at in the file tree. */
+const repoPath = z.string().refine(isRepoPath, {
+  error: (issue) =>
+    `must be a path from the root of the repository, like "src/auth" or "src/auth/login.ts", with no leading or trailing "/", got ${JSON.stringify(issue.input)}`,
+});
+
 const cardSchema = z.strictObject({
   heading: text,
   lead: text.optional(),
-  items: z.array(z.strictObject({ title: text, text: text.optional() })),
+  items: z.array(z.strictObject({ title: text, text: text.optional(), path: repoPath.optional() })),
 });
 
 const sentenceSchema = z.union(
-  [text, z.strictObject({ text, lines: lineRange.optional(), side: side.optional() })],
+  [
+    text,
+    z.strictObject({
+      text,
+      lines: lineRange.optional(),
+      side: side.optional(),
+      path: repoPath.optional(),
+    }),
+  ],
   { error: 'must be a string or an object like { "text": "...", "lines": [start, end] }' },
 );
 
@@ -58,7 +72,19 @@ const stepSchema = z
       });
       return;
     }
-    if (step.card === undefined) return;
+    if (step.card === undefined) {
+      step.say.forEach((sentence, index) => {
+        if (typeof sentence !== 'string' && sentence.path !== undefined) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['say', index, 'path'],
+            message:
+              'only allowed in steps with "card": the file of a step with "focus" is highlighted in the tree on its own',
+          });
+        }
+      });
+      return;
+    }
     if (step.note !== undefined) {
       ctx.addIssue({
         code: 'custom',
@@ -120,6 +146,15 @@ export function validateScript(input: unknown): ValidationResult {
       (issue) => `${describePath(issue.path, input)}: ${issue.message}`,
     ),
   };
+}
+
+function isRepoPath(value: string): boolean {
+  return (
+    !value.includes('\\') &&
+    value
+      .split('/')
+      .every((segment) => segment.trim() !== '' && segment !== '.' && segment !== '..')
+  );
 }
 
 function isLanguageTag(value: string): boolean {

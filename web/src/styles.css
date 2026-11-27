@@ -13,6 +13,10 @@
   --del-num: #ffd7d5;
   --del-fg: #cf222e;
   --focus: #bf8700;
+  --tree-hover: rgba(129, 139, 152, 0.12);
+  --tree-selected: rgba(129, 139, 152, 0.16);
+  --tree-folder: #54aeff;
+  --tree-modified: #9a6700;
   --shadow: 0 8px 24px rgba(31, 35, 40, 0.12);
   --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
@@ -33,6 +37,10 @@
     --del-num: #542426;
     --del-fg: #f85149;
     --focus: #e3b341;
+    --tree-hover: rgba(177, 186, 196, 0.12);
+    --tree-selected: rgba(177, 186, 196, 0.16);
+    --tree-folder: #7d8590;
+    --tree-modified: #d29922;
     --shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
   }
 }
@@ -137,6 +145,12 @@ header {
 .update:focus-within .update-hint {
   display: block;
 }
+.pr-head {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
 .pr-title {
   font-size: 15px;
   font-weight: 600;
@@ -192,46 +206,193 @@ main {
   color: var(--fg-muted);
 }
 
-/* File list */
-.files {
+/* The diff panel, with the file tree beside it */
+.body {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+}
+
+/* File tree, after GitHub's: plain rows, folder and file icons, the status at the right. */
+.tree-panel {
+  flex: none;
+  width: 260px;
+  max-width: 45%;
+  overflow: auto;
+  border-right: 1px solid var(--border);
+  background: var(--bg);
+  padding: 8px 0;
+  font-size: 14px;
+}
+@media (max-width: 720px) {
+  .tree-panel {
+    width: 200px;
+  }
+}
+.tree-panel ul {
   list-style: none;
   margin: 0;
-  padding: 12px 16px;
-  display: grid;
-  gap: 6px;
+  padding: 0;
 }
-.files button {
-  width: 100%;
+.tree-panel ul[role="group"] {
+  position: relative;
+}
+/* A faint line down each open folder, like GitHub's indent guides. */
+.tree-panel ul[role="group"]::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--guide) + 8px);
+  border-left: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  pointer-events: none;
+}
+.tree-panel [role="treeitem"] {
+  outline: none;
+}
+.tree-panel .row {
+  position: relative;
   display: flex;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
-  text-align: left;
-  padding: 8px 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--bg-soft);
+  height: 30px;
+  margin: 0 8px;
+  padding-right: 8px;
+  border-radius: 6px;
   min-width: 0;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    opacity 0.3s,
+    background 0.15s;
 }
-.files button:hover {
-  border-color: var(--accent);
+.tree-panel .row:hover {
+  background: var(--tree-hover);
 }
-.files button:focus-visible,
-.back:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-.files .path {
+.tree-panel .name {
   flex: 1;
   min-width: 0;
-  font: 12.5px var(--mono);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.files .counts {
+.tree-panel .chevron {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  margin-left: -2px;
+  fill: none;
+  stroke: var(--fg-muted);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 0.15s;
+}
+.tree-panel [aria-expanded="true"] > .row .chevron {
+  transform: rotate(90deg);
+}
+.tree-panel .icon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  fill: var(--fg-muted);
+}
+.tree-panel .icon.folder {
+  fill: var(--tree-folder);
+}
+/* Files sit under the folder's icon, past where its chevron is. */
+.tree-panel .icon.file {
+  margin-left: 16px;
+}
+.tree-panel .count,
+.tree-panel .counts {
   flex: none;
   font-size: 12px;
   color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
+}
+/* The lines added and removed only on the row under the pointer and the current one, so names
+   keep their room, as in GitHub's tree. */
+.tree-panel .counts {
+  display: none;
+}
+.tree-panel .row:hover .counts,
+.tree-panel [aria-current="true"] > .row .counts {
+  display: inline;
+}
+.tree-panel .st {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  fill: var(--fg-muted);
+}
+.tree-panel .st.added {
+  fill: var(--add-fg);
+}
+.tree-panel .st.modified {
+  fill: var(--tree-modified);
+}
+.tree-panel .st.deleted {
+  fill: var(--del-fg);
+}
+/* The current file: a soft background and an accent mark at its left edge. */
+.tree-panel [aria-current="true"] > .row {
+  background: var(--tree-selected);
+}
+.tree-panel [aria-current="true"] > .row::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 4px;
+  margin-left: -6px;
+  border-radius: 6px;
+  background: var(--accent);
+}
+/* What a card points at keeps its full colour and the rest steps back; while a single sentence
+   points at one path, the rest steps back further and what it names takes the accent. */
+.tree-panel.pointing.strong [data-lit] > .row .name {
+  color: var(--accent);
+}
+.tree-panel.pointing :where([role="treeitem"]:not([data-lit])) > .row {
+  opacity: 0.55;
+}
+.tree-panel.pointing.strong :where([role="treeitem"]:not([data-lit])) > .row {
+  opacity: 0.3;
+}
+
+.tree-panel [role="treeitem"]:focus-visible > .row {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.tree-toggle {
+  flex: none;
+  align-self: center;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fg-muted);
+  padding: 0;
+}
+.tree-toggle:hover {
+  background: var(--tree-hover);
+  color: var(--fg);
+}
+.tree-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.tree-toggle svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
 }
 
 /* One file */
@@ -297,15 +458,6 @@ main {
 }
 .file-head .note + .lines {
   margin-left: 0;
-}
-.back {
-  flex: none;
-  font-family: var(--sans);
-  font-size: 12px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--bg);
-  padding: 0 8px;
 }
 .tag {
   flex: none;
@@ -454,6 +606,15 @@ nav::-webkit-scrollbar {
 }
 .card li code {
   font: 12px var(--mono);
+}
+.card li {
+  transition:
+    border-color 0.3s,
+    box-shadow 0.3s;
+}
+.card li.lit {
+  border-color: var(--accent);
+  box-shadow: inset 3px 0 0 var(--accent);
 }
 
 /* Start card and the notice of a tab that was superseded */

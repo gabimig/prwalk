@@ -3,7 +3,9 @@ import type { Cause } from '../../src/shared/events.js';
 import type { PlaybackAction, PlaybackState } from '../../src/shared/playback.js';
 import type { ViewerVoice } from '../../src/shared/protocol.js';
 import type { Card, Script } from '../../src/shared/script.js';
+import { buildFileTree } from '../../src/shared/tree.js';
 import type { LiveMessage, LoadedSession, PositionReport } from './connection.js';
+import { FileTree, TreeToggle, useTreeOpen } from './FileTree.js';
 import { FileView } from './FileView.js';
 import { useTexts, voiceLabels } from './i18n.js';
 import { hasInteracted } from './interaction.js';
@@ -15,7 +17,7 @@ import {
   PAUSES,
   PlaybackEngine,
 } from './playback/engine.js';
-import { sentenceFocus } from './playback/focus.js';
+import { cardPaths, pointsAtPaths, sentenceFocus } from './playback/focus.js';
 import { recordAnswer, recordSentence, type TranscriptBlock } from './playback/transcript.js';
 import { applySavedChoice, applySavedSpeed, SpeedPicker, VoicePicker } from './VoicePicker.js';
 import { createVoice, voiceFor } from './voice/create.js';
@@ -32,8 +34,11 @@ type Props = {
   onPosition: (report: PositionReport) => void;
   /** Listens to the agent's orders, answers and replaced steps. */
   subscribe: (listener: (message: LiveMessage) => void) => () => void;
-  /** Renders the page header, given what to show of the voice: its name, or its menus. */
-  header: (voice: ReactNode) => ReactNode;
+  /**
+   * Renders the page header, given what to show of the voice (its name, or its menus) and the
+   * button that shows and hides the file tree.
+   */
+  header: (voice: ReactNode, treeToggle: ReactNode) => ReactNode;
   /** The voice the daemon says to use; a change applies from the next sentence. */
   voice: ViewerVoice;
 };
@@ -158,8 +163,9 @@ export function Player({
     };
     const onKey = (event: KeyboardEvent) => {
       if (event.metaKey || event.ctrlKey || event.altKey) return;
-      // The voice and speed menus use the arrows and Space themselves.
+      // The voice and speed menus, and the file tree, use the arrows and Space themselves.
       if (event.target instanceof HTMLSelectElement) return;
+      if (event.target instanceof Element && event.target.closest('[role="tree"]')) return;
       const type = keys[event.code];
       if (type === undefined) return;
       event.preventDefault();
@@ -179,9 +185,40 @@ export function Player({
     () => answerFocus ?? (step === undefined ? undefined : sentenceFocus(step, state.sentence)),
     [focusKey, state.step, jumps, aside?.answer, script],
   );
-  const shown = focus && session.files.find(({ file }) => file.path === focus.file);
   const playing = (aside?.status ?? state.status) === 'playing';
   const showsAnswer = answerFocus !== undefined;
+
+  // A file the person opened from the tree: shown until playback moves on or plays again.
+  const [opened, setOpened] = useState<string | null>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: these are the triggers that close it.
+  useEffect(() => setOpened(null), [state.step, jumps, aside?.answer, script]);
+  useEffect(() => {
+    if (playing) setOpened(null);
+  }, [playing]);
+  const openFile = (path: string) => {
+    if (playing) dispatch({ type: 'pause' });
+    setOpened(path);
+  };
+
+  const shownPath = opened ?? focus?.file;
+  const shown = session.files.find(({ file }) => file.path === shownPath);
+  const showsCard = step?.card !== undefined && !showsAnswer && opened === null;
+  const nodes = useMemo(() => buildFileTree(session.files.map(({ file }) => file)), [session]);
+  const light = showsCard && step !== undefined ? cardPaths(step, state.sentence) : undefined;
+
+  // The tree as the person left it, except that a step pointing at paths opens it while it lasts.
+  const [treeOpen, setTreeOpen] = useTreeOpen();
+  const [dismissed, setDismissed] = useState<number | null>(null);
+  // Hiding it lasts for that step only: the next time a step starts, it opens again.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: these are the triggers that reset it.
+  useEffect(() => setDismissed(null), [state.step, jumps, script]);
+  const forced = step !== undefined && pointsAtPaths(step) && dismissed !== state.step;
+  const treeShown = treeOpen || forced;
+  const toggleTree = () => {
+    if (!treeShown) return setTreeOpen(true);
+    if (treeOpen) setTreeOpen(false);
+    if (forced) setDismissed(state.step);
+  };
 
   return (
     <div className={`player${playing ? '' : ' paused'}`}>
@@ -193,28 +230,38 @@ export function Player({
         ) : (
           <span className="badge">{t.voice(voiceName)}</span>
         ),
+        <TreeToggle open={treeShown} onToggle={toggleTree} />,
       )}
       <StepStrip
         script={script}
         current={state.step}
         onGo={(to) => dispatch({ type: 'goto', step: to })}
       />
-      <main>
-        {step?.card !== undefined && !showsAnswer ? (
-          <CardView key={state.step} card={step.card} />
-        ) : (
-          shown && (
-            <FileView
-              key={shown.file.path}
-              file={shown.file}
-              metadata={shown.metadata}
-              focus={focus}
-              note={showsAnswer ? undefined : step?.note}
-              label={showsAnswer ? t.answer : undefined}
-            />
-          )
+      <div className="body">
+        {treeShown && (
+          <FileTree nodes={nodes} current={shown?.file.path} light={light} onOpen={openFile} />
         )}
-      </main>
+        <main>
+          {showsCard && step?.card !== undefined ? (
+            <CardView
+              key={state.step}
+              card={step.card}
+              lit={light?.sentence ? light.paths[0] : undefined}
+            />
+          ) : (
+            shown && (
+              <FileView
+                key={shown.file.path}
+                file={shown.file}
+                metadata={shown.metadata}
+                focus={opened === null ? focus : undefined}
+                note={showsAnswer || opened !== null ? undefined : step?.note}
+                label={showsAnswer && opened === null ? t.answer : undefined}
+              />
+            )
+          )}
+        </main>
+      </div>
       <footer>
         <div className="progress">
           <i style={{ width: `${((state.step + 1) / script.steps.length) * 100}%` }} />
@@ -310,7 +357,8 @@ function StepStrip({
   );
 }
 
-function CardView({ card }: { card: Card }) {
+/** A card step; `lit` is the path the sentence being said points at, to mark its item. */
+function CardView({ card, lit }: { card: Card; lit?: string | undefined }) {
   return (
     <div className="card">
       <h2>{card.heading}</h2>
@@ -318,7 +366,7 @@ function CardView({ card }: { card: Card }) {
       <ul>
         {card.items.map((item, index) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: items have no id and never reorder.
-          <li key={index}>
+          <li key={index} className={lit !== undefined && item.path === lit ? 'lit' : undefined}>
             <b>
               <code>{item.title}</code>
             </b>

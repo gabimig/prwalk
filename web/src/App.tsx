@@ -1,18 +1,19 @@
-import { type ReactNode, useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import type { ViewerFocus, ViewerUpdate, ViewerVoice } from '../../src/shared/protocol.js';
+import { buildFileTree } from '../../src/shared/tree.js';
 import {
   type LiveMessage,
   type LoadedSession,
   type SessionState,
   useDaemon,
 } from './connection.js';
+import { FileTree, TreeToggle, useTreeOpen } from './FileTree.js';
 import { FileView } from './FileView.js';
 import { TEXTS, type Texts, TextsContext, uiLanguage, useTexts, voiceLabels } from './i18n.js';
 import { hasInteracted } from './interaction.js';
 import { Player } from './Player.js';
 import { AsideQueue, type AsideView } from './playback/aside.js';
 import { PAUSES } from './playback/engine.js';
-import { StatusTag } from './StatusTag.js';
 import { UpdateNotice } from './UpdateNotice.js';
 import { createVoice, voiceFor } from './voice/create.js';
 import { SwitchableVoice } from './voice/switchable.js';
@@ -21,23 +22,34 @@ import type { VoiceProvider } from './voice/voice.js';
 export function App() {
   const { connection, session, focus, script, voice, update, reportPosition, subscribe } =
     useDaemon();
-  // A file the user opened from the list. Any focus from the agent, or a new session, takes
-  // over from it, so it only counts while both are the ones it was opened under.
-  const [opened, setOpened] = useState<{
-    path: string;
-    focus: ViewerFocus | null;
-    session: SessionState;
-  } | null>(null);
-  const openedPath =
-    opened !== null && opened.focus === focus && opened.session === session ? opened.path : null;
-  const open = (path: string | null) => setOpened(path === null ? null : { path, focus, session });
-
   const lang = uiLanguage(script?.script.lang, navigator.language);
   const t = TEXTS[lang];
   const loaded = session.status === 'ready' ? session.session : undefined;
   const { aside, toggle } = useLooseAnswers(subscribe, script === null, t, voice);
-  const shownFocus = aside?.answer.focus ?? focus;
-  const shown = loaded?.files.find(({ file }) => file.path === (shownFocus?.file ?? openedPath));
+  const answerFocus = aside?.answer.focus;
+  // A file the user opened from the tree, shown over any focus. A new focus from the agent, an
+  // answer with a focus of its own, or a new session takes over from it, so it only counts while
+  // those are the ones it was opened under.
+  const [opened, setOpened] = useState<{
+    path: string;
+    focus: ViewerFocus | null;
+    answerFocus: ViewerFocus | undefined;
+    session: SessionState;
+  } | null>(null);
+  const openedPath =
+    opened !== null &&
+    opened.focus === focus &&
+    opened.session === session &&
+    (answerFocus === undefined || answerFocus === opened.answerFocus)
+      ? opened.path
+      : null;
+  const open = (path: string | null) =>
+    setOpened(path === null ? null : { path, focus, answerFocus, session });
+
+  const shownFocus = openedPath !== null ? null : (answerFocus ?? focus);
+  const shown = loaded?.files.find(({ file }) => file.path === (openedPath ?? shownFocus?.file));
+  const nodes = useMemo(() => buildFileTree(loaded?.files.map(({ file }) => file) ?? []), [loaded]);
+  const [treeOpen, setTreeOpen] = useTreeOpen();
 
   let page: ReactNode;
   if (connection === 'superseded') {
@@ -52,11 +64,12 @@ export function App() {
         onPosition={reportPosition}
         subscribe={subscribe}
         voice={voice}
-        header={(shown) => (
+        header={(voiceShown, treeToggle) => (
           <Header
             session={loaded}
             badges={[t.level(script.script.level)]}
-            extra={shown}
+            extra={voiceShown}
+            toggle={treeToggle}
             update={update}
           />
         )}
@@ -65,23 +78,33 @@ export function App() {
   } else {
     page = (
       <>
-        {loaded && <Header session={loaded} update={update} />}
-        <main>
-          {shown ? (
-            <FileView
-              key={shown.file.path}
-              file={shown.file}
-              metadata={shown.metadata}
-              focus={shownFocus ?? undefined}
-              label={aside?.answer.focus === undefined ? undefined : t.answer}
-              onBack={shownFocus === null ? () => open(null) : undefined}
-            />
-          ) : loaded ? (
-            <FileList session={loaded} onOpen={open} />
-          ) : (
-            <Notice session={session} />
+        {loaded && (
+          <Header
+            session={loaded}
+            update={update}
+            toggle={<TreeToggle open={treeOpen} onToggle={() => setTreeOpen(!treeOpen)} />}
+          />
+        )}
+        <div className="body">
+          {loaded && treeOpen && (
+            <FileTree nodes={nodes} current={shown?.file.path} onOpen={open} />
           )}
-        </main>
+          <main>
+            {shown ? (
+              <FileView
+                key={shown.file.path}
+                file={shown.file}
+                metadata={shown.metadata}
+                focus={shownFocus ?? undefined}
+                label={openedPath === null && answerFocus !== undefined ? t.answer : undefined}
+              />
+            ) : loaded ? (
+              <p className="notice">{t.pickFile}</p>
+            ) : (
+              <Notice session={session} />
+            )}
+          </main>
+        </div>
         {aside !== null && (
           <div className="aside-bar" role="status">
             {aside.status === 'paused' && (
@@ -136,6 +159,7 @@ function useLooseAnswers(
     setToggle(() => toggleQueue);
     const onKey = (event: KeyboardEvent) => {
       if (event.code !== 'Space' || queue?.view == null) return;
+      if (event.target instanceof Element && event.target.closest('[role="tree"]')) return;
       if (event.metaKey || event.ctrlKey || event.altKey) return;
       event.preventDefault();
       toggleQueue();
@@ -201,12 +225,15 @@ function Header({
   session: { meta, files },
   badges = [],
   extra,
+  toggle,
   update,
 }: {
   session: LoadedSession;
   badges?: string[];
   /** Shown after the badges, like the voice. */
   extra?: ReactNode;
+  /** The button that shows and hides the file tree, before the title. */
+  toggle?: ReactNode;
   /** A newer prwalk, shown at the right. */
   update: ViewerUpdate | null;
 }) {
@@ -220,10 +247,13 @@ function Header({
   return (
     <header>
       <div className="header-main">
-        <h1 className="pr-title">
-          <span>{meta.title}</span>
-          {meta.number !== undefined && <span className="num">#{meta.number}</span>}
-        </h1>
+        <div className="pr-head">
+          {toggle}
+          <h1 className="pr-title">
+            <span>{meta.title}</span>
+            {meta.number !== undefined && <span className="num">#{meta.number}</span>}
+          </h1>
+        </div>
         <div className="pr-meta">
           {meta.kind !== 'patch' && (
             <span>
@@ -245,31 +275,5 @@ function Header({
       </div>
       <UpdateNotice update={update} />
     </header>
-  );
-}
-
-function FileList({ session, onOpen }: { session: LoadedSession; onOpen: (path: string) => void }) {
-  const t = useTexts();
-  return (
-    <ul className="files" aria-label={t.filesLabel}>
-      {session.files.map(({ file }) => (
-        <li key={file.path}>
-          <button type="button" onClick={() => onOpen(file.path)}>
-            <StatusTag status={file.status} />
-            <span className="path">{file.path}</span>
-            <span className="counts">
-              {file.binary ? (
-                'binary'
-              ) : (
-                <>
-                  <span className="plus">+{file.additions}</span>{' '}
-                  <span className="minus">−{file.deletions}</span>
-                </>
-              )}
-            </span>
-          </button>
-        </li>
-      ))}
-    </ul>
   );
 }
