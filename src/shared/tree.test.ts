@@ -44,6 +44,13 @@ describe('buildFileTree', () => {
     ]);
     expect(tree[1]?.kind === 'dir' && tree[1].children[0]?.path).toBe('src/auth/limits');
   });
+
+  it('tells apart a file and a folder with the same path', () => {
+    const [src] = buildFileTree([changed('src/a'), changed('src/a/b.ts')]);
+    const ids = src?.kind === 'dir' ? src.children.map((node) => node.id) : [];
+    expect(ids).toHaveLength(2);
+    expect(new Set(ids).size).toBe(2);
+  });
 });
 
 describe('pathTargets', () => {

@@ -5,10 +5,15 @@ import type { DiffFile } from './diff.js';
  * and which of its rows a path in a script points at. Only files in the diff are in it.
  */
 
-export type TreeFile = { kind: 'file'; name: string; path: string; file: DiffFile };
+/**
+ * `id` tells the rows apart: a file and a folder can share a path when a change replaces one with
+ * the other.
+ */
+export type TreeFile = { kind: 'file'; id: string; name: string; path: string; file: DiffFile };
 
 export type TreeDir = {
   kind: 'dir';
+  id: string;
   /** One or more folder names: a chain of folders with a single child is one row, `a/b/c`. */
   name: string;
   /** From the root of the repository, without a trailing slash. */
@@ -22,7 +27,7 @@ export type TreeNode = TreeFile | TreeDir;
 
 /** Folders before files, each in alphabetical order; folder chains with one child compressed. */
 export function buildFileTree(files: DiffFile[]): TreeNode[] {
-  const root: TreeDir = { kind: 'dir', name: '', path: '', files: 0, children: [] };
+  const root: TreeDir = { kind: 'dir', id: 'dir:', name: '', path: '', files: 0, children: [] };
   for (const file of files) {
     const segments = file.path.split('/');
     let dir = root;
@@ -30,14 +35,14 @@ export function buildFileTree(files: DiffFile[]): TreeNode[] {
       dir.files++;
       const path = segments.slice(0, index + 1).join('/');
       if (index === segments.length - 1) {
-        dir.children.push({ kind: 'file', name, path, file });
+        dir.children.push({ kind: 'file', id: `file:${path}`, name, path, file });
         break;
       }
       let child = dir.children.find(
         (node): node is TreeDir => node.kind === 'dir' && node.name === name,
       );
       if (child === undefined) {
-        child = { kind: 'dir', name, path, files: 0, children: [] };
+        child = { kind: 'dir', id: `dir:${path}`, name, path, files: 0, children: [] };
         dir.children.push(child);
       }
       dir = child;

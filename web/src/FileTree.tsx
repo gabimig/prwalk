@@ -52,7 +52,7 @@ export function FileTree({ nodes, current, light, onOpen }: Props) {
     const box = container.current;
     if (box === null || current === undefined) return;
     const frame = requestAnimationFrame(() => {
-      const element = box.querySelector(`[data-path="${CSS.escape(current)}"] > .row`);
+      const element = box.querySelector(`[data-id="${CSS.escape(`file:${current}`)}"] > .row`);
       if (!(element instanceof HTMLElement)) return;
       const top = element.getBoundingClientRect().top - box.getBoundingClientRect().top;
       if (top < 0 || top + element.offsetHeight > box.clientHeight) {
@@ -63,9 +63,11 @@ export function FileTree({ nodes, current, light, onOpen }: Props) {
   }, [current, collapsed]);
 
   const visible = useMemo(() => visibleRows(nodes, collapsed), [nodes, collapsed]);
-  const tabStop = visible.some((row) => row.node.path === focused)
+  const tabStop = visible.some((row) => row.node.id === focused)
     ? focused
-    : (current ?? visible[0]?.node.path);
+    : current !== undefined
+      ? `file:${current}`
+      : visible[0]?.node.id;
 
   const toggle = (path: string) =>
     setCollapsed((folded) => {
@@ -75,38 +77,38 @@ export function FileTree({ nodes, current, light, onOpen }: Props) {
     });
 
   const activate = (node: TreeNode) => {
-    setFocused(node.path);
+    setFocused(node.id);
     if (node.kind === 'dir') toggle(node.path);
     else onOpen(node.path);
   };
 
-  const moveTo = (path: string | undefined) => {
-    if (path === undefined) return;
-    setFocused(path);
+  const moveTo = (id: string | undefined) => {
+    if (id === undefined) return;
+    setFocused(id);
     container.current
-      ?.querySelector<HTMLElement>(`[data-path="${CSS.escape(path)}"]`)
+      ?.querySelector<HTMLElement>(`[data-id="${CSS.escape(id)}"]`)
       ?.focus({ preventScroll: false });
   };
 
   /** The keys of the row with the keyboard focus; true if the key was used. */
   const onKey = (node: TreeNode, key: string): boolean => {
-    const at = visible.findIndex((row) => row.node.path === node.path);
+    const at = visible.findIndex((row) => row.node.id === node.id);
     const open = node.kind === 'dir' && !collapsed.has(node.path);
     switch (key) {
       case 'ArrowDown':
-        moveTo(visible[at + 1]?.node.path);
+        moveTo(visible[at + 1]?.node.id);
         return true;
       case 'ArrowUp':
-        moveTo(visible[at - 1]?.node.path);
+        moveTo(visible[at - 1]?.node.id);
         return true;
       case 'Home':
-        moveTo(visible[0]?.node.path);
+        moveTo(visible[0]?.node.id);
         return true;
       case 'End':
-        moveTo(visible[visible.length - 1]?.node.path);
+        moveTo(visible[visible.length - 1]?.node.id);
         return true;
       case 'ArrowRight':
-        if (open) moveTo(visible[at + 1]?.node.path);
+        if (open) moveTo(visible[at + 1]?.node.id);
         else if (node.kind === 'dir') toggle(node.path);
         return true;
       case 'ArrowLeft':
@@ -129,17 +131,17 @@ export function FileTree({ nodes, current, light, onOpen }: Props) {
       const open = node.kind === 'dir' && !collapsed.has(node.path);
       return (
         <li
-          key={node.path}
+          key={node.id}
           role="treeitem"
-          data-path={node.path}
+          data-id={node.id}
           aria-label={node.path}
           aria-level={depth + 1}
           aria-expanded={node.kind === 'dir' ? open : undefined}
           aria-current={isCurrent ? 'true' : undefined}
           data-lit={isLit ? 'true' : undefined}
-          tabIndex={node.path === tabStop ? 0 : -1}
+          tabIndex={node.id === tabStop ? 0 : -1}
           onFocus={(event) => {
-            if (event.target === event.currentTarget) setFocused(node.path);
+            if (event.target === event.currentTarget) setFocused(node.id);
           }}
           // A click leaves the keyboard to the player's shortcuts, as its other buttons do.
           onMouseDown={(event) => event.preventDefault()}
@@ -203,6 +205,7 @@ export function FileTree({ nodes, current, light, onOpen }: Props) {
   );
 }
 
+/** `parent` is the id of the folder row it is in. */
 type VisibleRow = { node: TreeNode; parent: string | undefined };
 
 /** The rows on screen, top to bottom: everything but what is inside a folded folder. */
@@ -211,7 +214,7 @@ function visibleRows(nodes: TreeNode[], collapsed: ReadonlySet<string>): Visible
   const walk = (list: TreeNode[], parent: string | undefined) => {
     for (const node of list) {
       rows.push({ node, parent });
-      if (node.kind === 'dir' && !collapsed.has(node.path)) walk(node.children, node.path);
+      if (node.kind === 'dir' && !collapsed.has(node.path)) walk(node.children, node.id);
     }
   };
   walk(nodes, undefined);
