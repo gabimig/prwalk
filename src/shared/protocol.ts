@@ -36,6 +36,9 @@ export type TransportCommand =
  */
 export type ViewerVoice = { kind: 'browser' } | { kind: 'remote'; name: string; token: string };
 
+/** A newer prwalk has been released: `current` is the one installed. */
+export type ViewerUpdate = { current: string; latest: string };
+
 /** Daemon to viewer, over the WebSocket. */
 export type ServerMessage =
   /** A new session is open: fetch `/api/session` and `/api/diff` again. */
@@ -59,7 +62,12 @@ export type ServerMessage =
    * Speak with this voice from the next sentence on. Sent when a viewer connects only for a
    * remote voice (without one, the viewer speaks with the browser's), and to all on a change.
    */
-  | { type: 'voice'; voice: ViewerVoice };
+  | { type: 'voice'; voice: ViewerVoice }
+  /**
+   * A newer prwalk has been released. Sent when the daemon finds out (it checks when it starts
+   * and on every new session) and to each viewer that connects after.
+   */
+  | { type: 'update'; update: ViewerUpdate };
 
 /**
  * Viewer to daemon: where its playback is, sent every time it changes. `cause` says who changed

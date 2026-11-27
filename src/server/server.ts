@@ -29,6 +29,7 @@ import {
   type TransportCommand,
   ttsRequestSchema,
   type ViewerFocus,
+  type ViewerUpdate,
   type ViewerVoice,
   type VoiceReply,
   viewerMessageSchema,
@@ -93,6 +94,11 @@ export type ServerOptions = {
   voice?: () => VoiceConfig | undefined;
   /** Writes a line to the daemon's log (default: nowhere). */
   log?: (line: string) => void;
+  /**
+   * Whether a newer prwalk has been released, undefined when not or not known. Run when the
+   * server starts and on every new session, without anything waiting for it (default: never).
+   */
+  checkUpdate?: () => Promise<ViewerUpdate | undefined>;
 };
 
 export type RunningServer = { port: number; close(): Promise<void> };
@@ -176,6 +182,25 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
   const loadVoice = () => {
     voiceLoaded = voiceLoaded.then(readVoice);
     return voiceLoaded;
+  };
+
+  /** The newer version found by the last check, told to every viewer. */
+  let update: ViewerUpdate | undefined;
+  /** The check under way: an open while it runs does not start another one. */
+  let checking: Promise<void> | undefined;
+  const checkUpdate = () => {
+    if (checking !== undefined) return;
+    checking = options
+      .checkUpdate?.()
+      .then((found) => {
+        if (found === undefined || found.latest === update?.latest) return;
+        update = found;
+        broadcast({ type: 'update', update });
+      })
+      .catch((error: unknown) => log(`update check: ${messageOf(error)}`))
+      .finally(() => {
+        checking = undefined;
+      });
   };
 
   const viewers = new WebSocketServer({ noServer: true, maxPayload: MAX_VIEWER_MESSAGE_BYTES });
@@ -272,6 +297,7 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
       sendTo(viewer, { type: 'focus', focus });
       if (playback !== undefined) sendScript();
       if (voice.synthesizer !== undefined) sendTo(viewer, { type: 'voice', voice: viewerVoice() });
+      if (update !== undefined) sendTo(viewer, { type: 'update', update });
     });
   });
 
@@ -390,6 +416,7 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
         events = [];
         seenSeq = lastSeq;
         broadcast({ type: 'session' });
+        checkUpdate();
         return sendJson(res, 200, { meta: session.meta, index: session.index });
       }
       case 'GET /api/script':
@@ -660,6 +687,7 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
     server.listen(options.port, '127.0.0.1', () => {
       port = (server.address() as { port: number }).port;
       stillUsed();
+      checkUpdate();
       resolve({ port, close });
     });
     // The viewers learn the adapter's voice once it has loaded.

@@ -3,6 +3,7 @@ import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ensureHome, preferencesPath, prwalkHome } from '../server/state.js';
+import { checkForUpdate, installedVersion, type UpdateInfo } from '../server/updates.js';
 import { UserError } from './errors.js';
 import { type JsonOption, print } from './session-commands.js';
 
@@ -70,10 +71,21 @@ export function guideWithPreferences(home: string): { text: string; warning?: st
   }
 }
 
-/** `prwalk skill`: prints the full agent guide followed by the user's preferences. */
-export function printGuide(): void {
-  const { text, warning } = guideWithPreferences(prwalkHome());
-  process.stdout.write(text);
+/** What `prwalk skill` adds at the end when a newer version has been released; nothing otherwise. */
+export function updateNotice(update: UpdateInfo | undefined): string {
+  if (update === undefined) return '';
+  return `\n---\n\nA newer version of prwalk is available: ${update.latest} (installed: ${update.current}). Tell the user in one line in your "ready" message, and run prwalk update if they agree (see "Updates").\n`;
+}
+
+/**
+ * `prwalk skill`: prints the full agent guide followed by the user's preferences, and a notice
+ * when a newer prwalk has been released (asking GitHub at most once a day).
+ */
+export async function printGuide(): Promise<void> {
+  const home = prwalkHome();
+  const { text, warning } = guideWithPreferences(home);
+  const update = await checkForUpdate({ home, current: installedVersion() });
+  process.stdout.write(text + updateNotice(update));
   if (warning !== undefined) process.stderr.write(`${warning}\n`);
 }
 

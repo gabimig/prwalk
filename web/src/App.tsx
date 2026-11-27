@@ -1,5 +1,5 @@
 import { type ReactNode, useEffect, useState } from 'react';
-import type { ViewerFocus, ViewerVoice } from '../../src/shared/protocol.js';
+import type { ViewerFocus, ViewerUpdate, ViewerVoice } from '../../src/shared/protocol.js';
 import {
   type LiveMessage,
   type LoadedSession,
@@ -13,12 +13,14 @@ import { Player } from './Player.js';
 import { AsideQueue, type AsideView } from './playback/aside.js';
 import { PAUSES } from './playback/engine.js';
 import { StatusTag } from './StatusTag.js';
+import { UpdateNotice } from './UpdateNotice.js';
 import { createVoice, voiceFor } from './voice/create.js';
 import { SwitchableVoice } from './voice/switchable.js';
 import type { VoiceProvider } from './voice/voice.js';
 
 export function App() {
-  const { connection, session, focus, script, voice, reportPosition, subscribe } = useDaemon();
+  const { connection, session, focus, script, voice, update, reportPosition, subscribe } =
+    useDaemon();
   // A file the user opened from the list. Any focus from the agent, or a new session, takes
   // over from it, so it only counts while both are the ones it was opened under.
   const [opened, setOpened] = useState<{
@@ -51,14 +53,19 @@ export function App() {
         subscribe={subscribe}
         voice={voice}
         header={(shown) => (
-          <Header session={loaded} badges={[t.level(script.script.level)]} extra={shown} />
+          <Header
+            session={loaded}
+            badges={[t.level(script.script.level)]}
+            extra={shown}
+            update={update}
+          />
         )}
       />
     );
   } else {
     page = (
       <>
-        {loaded && <Header session={loaded} />}
+        {loaded && <Header session={loaded} update={update} />}
         <main>
           {shown ? (
             <FileView
@@ -194,11 +201,14 @@ function Header({
   session: { meta, files },
   badges = [],
   extra,
+  update,
 }: {
   session: LoadedSession;
   badges?: string[];
   /** Shown after the badges, like the voice. */
   extra?: ReactNode;
+  /** A newer prwalk, shown at the right. */
+  update: ViewerUpdate | null;
 }) {
   const t = useTexts();
   let additions = 0;
@@ -209,28 +219,31 @@ function Header({
   }
   return (
     <header>
-      <h1 className="pr-title">
-        <span>{meta.title}</span>
-        {meta.number !== undefined && <span className="num">#{meta.number}</span>}
-      </h1>
-      <div className="pr-meta">
-        {meta.kind !== 'patch' && (
+      <div className="header-main">
+        <h1 className="pr-title">
+          <span>{meta.title}</span>
+          {meta.number !== undefined && <span className="num">#{meta.number}</span>}
+        </h1>
+        <div className="pr-meta">
+          {meta.kind !== 'patch' && (
+            <span>
+              <span className="branch">{meta.headRef}</span> →{' '}
+              <span className="branch">{meta.baseRef}</span>
+            </span>
+          )}
           <span>
-            <span className="branch">{meta.headRef}</span> →{' '}
-            <span className="branch">{meta.baseRef}</span>
+            {t.files(files.length)} · <span className="plus">+{additions}</span>{' '}
+            <span className="minus">−{deletions}</span>
           </span>
-        )}
-        <span>
-          {t.files(files.length)} · <span className="plus">+{additions}</span>{' '}
-          <span className="minus">−{deletions}</span>
-        </span>
-        {badges.map((badge) => (
-          <span key={badge} className="badge">
-            {badge}
-          </span>
-        ))}
-        {extra}
+          {badges.map((badge) => (
+            <span key={badge} className="badge">
+              {badge}
+            </span>
+          ))}
+          {extra}
+        </div>
       </div>
+      <UpdateNotice update={update} />
     </header>
   );
 }

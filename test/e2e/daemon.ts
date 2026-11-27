@@ -29,15 +29,24 @@ export function stopDaemon(): void {
 
 /**
  * The real daemon on a free port, with the example diff open and the example script loaded, and
- * `config` as its config.json, if given.
+ * `config` as its config.json, if given. With `latest`, the daemon checks for a newer version and
+ * finds that one, saved as checked a moment ago (so it asks nobody).
  */
-export async function startDaemon(config?: object): Promise<Daemon> {
+export async function startDaemon(
+  config?: object,
+  { latest }: { latest?: string } = {},
+): Promise<Daemon> {
   const home = tempDir();
   if (config !== undefined) writeFileSync(join(home, 'config.json'), JSON.stringify(config));
-  child = spawn(process.execPath, [bin, 'daemon', '--port', '0'], {
-    env: { ...process.env, PRWALK_HOME: home },
-    stdio: 'ignore',
-  });
+  const env: NodeJS.ProcessEnv = { ...process.env, PRWALK_HOME: home };
+  if (latest !== undefined) {
+    writeFileSync(
+      join(home, 'update-check.json'),
+      JSON.stringify({ checkedAt: Date.now(), latest }),
+    );
+    env.PRWALK_UPDATE_CHECK = '1';
+  }
+  child = spawn(process.execPath, [bin, 'daemon', '--port', '0'], { env, stdio: 'ignore' });
   let state: { port: number; token: string } | undefined;
   for (let tries = 0; state === undefined && tries < 200; tries++) {
     try {
@@ -64,10 +73,7 @@ export async function startDaemon(config?: object): Promise<Daemon> {
   const playback = async () =>
     ((await (await fetch(new URL('/api/session', url))).json()) as { playback: unknown }).playback;
   const prwalk = (...args: string[]) =>
-    execFileSync(process.execPath, [bin, ...args], {
-      env: { ...process.env, PRWALK_HOME: home },
-      encoding: 'utf8',
-    });
+    execFileSync(process.execPath, [bin, ...args], { env, encoding: 'utf8' });
   return { url, playback, send, prwalk };
 }
 

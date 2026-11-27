@@ -28,9 +28,10 @@ Every command prints short plain text; add `--json` for the same as JSON. `prwal
 | `prwalk voice remove <name>`          | Deletes an installed voice; if it was in use, goes back to the browser's voices.                                                                        |
 | `prwalk voice test [text]`            | Synthesizes a sentence with the chosen adapter (`--lang`, `--out <file>` to save it).                                                                   |
 | `prwalk voice guide`                  | Prints the guide to writing a voice adapter.                                                                                                            |
-| `prwalk skill`                        | Prints the full guide for agents, followed by your preferences.                                                                                         |
+| `prwalk skill`                        | Prints the full guide for agents, followed by your preferences, and a notice when a newer version is out.                                               |
 | `prwalk skill install`                | Installs the skill stub (`--dir <folder>` for other agents).                                                                                            |
 | `prwalk preferences`                  | Prints your preferences and the file they are in (`--path` for the path only, `--reset` to go back to the defaults).                                    |
+| `prwalk update`                       | Updates PRWalk to the latest release with npm, stopping the daemon first (`--check` only says whether there is a newer one).                             |
 | `prwalk stop`                         | Stops the local daemon.                                                                                                                                 |
 
 ## Try it without an agent
@@ -71,6 +72,7 @@ Change it by editing the file, or tell your agent ("from now on start with the k
 - Everything runs on your machine. The daemon listens on `127.0.0.1` only, and refuses requests and pages from other origins.
 - The code and the narration never leave it, other than what `gh` already does to fetch a PR, unless you plug in a voice adapter for a cloud service: then the narration and the answers go to that service.
 - Of the browser's voices, only those that run on the machine are used: its cloud voices are discarded.
+- The only request PRWalk makes on its own: at most once a day, `prwalk skill` and the daemon ask GitHub which version is the latest (`GET https://github.com/gabimig/prwalk/releases/latest`, without following the redirect). Nothing goes with it: no version, no system, no identifier, only a generic `User-Agent: prwalk`. The answer is kept in `update-check.json` in `PRWALK_HOME`, and `prwalk open` reads it from there. `PRWALK_UPDATE_CHECK=0` turns it off; `prwalk update`, which you or your agent run on purpose, still asks. The page never talks to GitHub.
 
 ## Configuration
 
@@ -79,10 +81,13 @@ Change it by editing the file, or tell your agent ("from now on start with the k
 | `PRWALK_PORT`         | `4517`      | Port of the daemon (`--port` on `prwalk open` too).                                                                |
 | `PRWALK_HOME`         | `~/.prwalk` | Folder for the daemon's state file, its log, `config.json` (the voice), your preferences and the installed voices. |
 | `PRWALK_IDLE_MINUTES` | `240`       | The daemon stops after this long with no viewer open and no command; `0` never.                                    |
+| `PRWALK_UPDATE_CHECK` | `1`         | `0` turns off the daily check for a newer version (see Privacy).                                                   |
 
 ## Update and uninstall
 
-To update, run the install command again. To uninstall:
+When a newer version is out, your agent tells you, and the page shows it at the top right. To update, tell your agent "update PRWalk", or run `prwalk update` yourself: it stops the daemon (open walkthroughs close with it), installs the latest release with npm into the same global folder, and checks the version installed. It does not touch the skill, your preferences, the voice you chose or the installed voices. If npm fails, or PRWalk was not installed with `npm install -g`, it prints the command to run by hand, which is the install command again.
+
+To uninstall:
 
 ```sh
 prwalk stop

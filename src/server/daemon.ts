@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { startServer } from './server.js';
 import { readConfig, removeState, writeState } from './state.js';
+import { checkForUpdate, installedVersion } from './updates.js';
 
 const DEFAULT_IDLE_MINUTES = 4 * 60;
 /** The longest a timer can wait (about 24 days); longer ones would fire at once. */
@@ -22,6 +23,7 @@ export async function runDaemon({ port, home }: { port: number; home: string }):
     token,
     onStop: exit,
     voice: () => readConfig(home).voice,
+    checkUpdate: () => checkForUpdate({ home, current: installedVersion() }),
     log: (line) => process.stderr.write(`${new Date().toISOString()} ${line}\n`),
     ...(idleMs !== undefined && { idleMs, onIdle: exit }),
   });

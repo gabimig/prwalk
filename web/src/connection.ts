@@ -7,6 +7,7 @@ import type {
   ServerMessage,
   ViewerFocus,
   ViewerMessage,
+  ViewerUpdate,
   ViewerVoice,
 } from '../../src/shared/protocol.js';
 import type { Script } from '../../src/shared/script.js';
@@ -55,6 +56,8 @@ export function useDaemon(): {
   script: LoadedScript | null;
   /** The voice the daemon says to speak with. */
   voice: ViewerVoice;
+  /** A newer prwalk the daemon has found, or null. */
+  update: ViewerUpdate | null;
   reportPosition: (report: PositionReport) => void;
   /** Listens to the agent's live messages; returns how to stop listening. */
   subscribe: (listener: (message: LiveMessage) => void) => () => void;
@@ -64,6 +67,7 @@ export function useDaemon(): {
   const [focus, setFocus] = useState<ViewerFocus | null>(null);
   const [script, setScript] = useState<LoadedScript | null>(null);
   const [voice, setVoice] = useState<ViewerVoice>(BROWSER_VOICE);
+  const [update, setUpdate] = useState<ViewerUpdate | null>(null);
   const socketRef = useRef<WebSocket | undefined>(undefined);
   const listeners = useRef(new Set<(message: LiveMessage) => void>());
 
@@ -124,6 +128,8 @@ export function useDaemon(): {
           for (const listener of listeners.current) listener(message);
         } else if (message.type === 'voice') {
           setVoice(message.voice);
+        } else if (message.type === 'update') {
+          setUpdate(message.update);
         } else if (message.type === 'superseded') {
           // The script stays, only so the notice speaks its language.
           stopped = true;
@@ -161,7 +167,7 @@ export function useDaemon(): {
     };
   }, []);
 
-  return { connection, session, focus, script, voice, reportPosition, subscribe };
+  return { connection, session, focus, script, voice, update, reportPosition, subscribe };
 }
 
 const BROWSER_VOICE: ViewerVoice = { kind: 'browser' };

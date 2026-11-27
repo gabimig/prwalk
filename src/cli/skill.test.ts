@@ -13,14 +13,17 @@ const readme = () => readFileSync(new URL('../../README.md', import.meta.url), '
 const installCommand =
   'npm install -g https://github.com/gabimig/prwalk/releases/latest/download/prwalk.tgz';
 
-/** Runs prwalk with its own PRWALK_HOME, never the user's. */
-function prwalk(...args: string[]) {
+/** Runs prwalk with its own PRWALK_HOME, never the user's, and `env` on top. */
+function run(env: NodeJS.ProcessEnv, args: string[]) {
   const run = spawnSync(process.execPath, [bin, ...args], {
     encoding: 'utf8',
-    env: { ...process.env, PRWALK_HOME: home },
+    env: { ...process.env, PRWALK_HOME: home, ...env },
   });
   return { code: run.status, stdout: run.stdout, stderr: run.stderr };
 }
+const prwalk = Object.assign((...args: string[]) => run({}, args), {
+  with: (env: NodeJS.ProcessEnv, ...args: string[]) => run(env, args),
+});
 
 let home: string;
 beforeEach(() => {
@@ -79,6 +82,40 @@ describe('prwalk skill', { timeout: 30_000 }, () => {
     expect(failed.code).toBe(1);
     expect(failed.stdout).toBe('');
     expect(failed.stderr).toMatch(/^Cannot read or create .*: .*ENOTDIR.*PRWALK_HOME/);
+  });
+
+  it('tells about a newer version after the preferences and in prwalk open, from update-check.json', () => {
+    const version = (
+      JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8')) as {
+        version: string;
+      }
+    ).version;
+    const check = join(home, 'update-check.json');
+    const on = { PRWALK_UPDATE_CHECK: '1' };
+    writeFileSync(check, JSON.stringify({ checkedAt: Date.now(), latest: version }));
+    const upToDate = prwalk.with(on, 'skill').stdout;
+    expect(upToDate.endsWith(skillFile('PREFERENCES.md'))).toBe(true);
+
+    writeFileSync(check, JSON.stringify({ checkedAt: Date.now(), latest: '99.0.0' }));
+    const printed = prwalk.with(on, 'skill').stdout;
+    expect(printed.startsWith(upToDate)).toBe(true);
+    expect(printed.slice(upToDate.length)).toBe(
+      `\n---\n\nA newer version of prwalk is available: 99.0.0 (installed: ${version}). Tell the user in one line in your "ready" message, and run prwalk update if they agree (see "Updates").\n`,
+    );
+
+    const patch = fileURLToPath(new URL('../../test/fixtures/example.diff', import.meta.url));
+    try {
+      const opened = prwalk.with({ ...on, PRWALK_PORT: '0' }, 'open', '--patch', patch);
+      expect(opened.stdout).toContain(
+        `\nprwalk 99.0.0 is available (installed: ${version}); see "Updates" in prwalk skill.`,
+      );
+      const json = JSON.parse(
+        prwalk.with({ ...on, PRWALK_PORT: '0' }, 'open', '--patch', patch, '--json').stdout,
+      );
+      expect(json.update).toEqual({ current: version, latest: '99.0.0' });
+    } finally {
+      prwalk('stop');
+    }
   });
 
   it('makes overview the default level, in the guide and in the default preferences', () => {
