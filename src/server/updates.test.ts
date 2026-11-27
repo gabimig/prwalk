@@ -7,6 +7,7 @@ import {
   isNewer,
   latestVersion,
   RELEASES_URL,
+  savedUpdate,
   versionFromLocation,
 } from './updates.js';
 
@@ -142,5 +143,6 @@ describe('checkForUpdate', () => {
 
     expect(update).toBeUndefined();
     expect(requests).toEqual([]);
+    expect(savedUpdate(home, '0.1.2', { PRWALK_UPDATE_CHECK: '0' })).toBeUndefined();
   });
 });
