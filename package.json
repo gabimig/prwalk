@@ -1,6 +1,6 @@
 {
   "name": "prwalk",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Spoken, guided walkthroughs of pull requests, driven by a coding agent.",
   "keywords": [
     "pull-request",

@@ -1,9 +1,9 @@
 // Packs prwalk, installs the tarball the way the README tells a user to (`npm install -g`, here
 // under a temporary prefix) and runs the installed binary from outside the repository, following
-// the README: version, skill, voices, and the quick start with the example that ships in the
-// package. Run it with `pnpm test:pack`, which builds first.
+// the README: version, skill, voices, the quick start with the example that ships in the
+// package, and prwalk update --check. Nothing asks GitHub for the latest version. Run it with `pnpm test:pack`, which builds first.
 import { execFileSync, spawnSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -22,12 +22,19 @@ function check(condition, message) {
   if (!condition) throw new Error(message);
 }
 
-/** Runs the installed prwalk from the temporary folder and returns what it printed. */
+/**
+ * Runs the installed prwalk from the temporary folder and returns what it printed. The check for
+ * a newer version is off, unless `env` turns it on.
+ */
 function prwalk(...args) {
+  return prwalkWith({}, ...args);
+}
+
+function prwalkWith(env, ...args) {
   const run = spawnSync(bin, args, {
     cwd: work,
     encoding: 'utf8',
-    env: { ...process.env, PRWALK_HOME: home, PRWALK_PORT: '0' },
+    env: { ...process.env, PRWALK_HOME: home, PRWALK_PORT: '0', PRWALK_UPDATE_CHECK: '0', ...env },
   });
   check(run.status === 0, `prwalk ${args.join(' ')} failed (${run.status}): ${run.stderr}`);
   return run.stdout;
@@ -91,6 +98,17 @@ try {
   } finally {
     prwalk('stop');
   }
+  // A check saved a moment ago: prwalk update --check answers from it, without asking GitHub.
+  writeFileSync(
+    join(home, 'update-check.json'),
+    JSON.stringify({ checkedAt: Date.now(), latest: '99.0.0' }),
+  );
+  check(
+    prwalkWith({ PRWALK_UPDATE_CHECK: '1' }, 'update', '--check').trim() ===
+      `prwalk 99.0.0 is available (installed: ${version}). Run prwalk update to install it.`,
+    'prwalk update --check does not tell about the newer version saved in update-check.json',
+  );
+
   console.log(`The packed prwalk ${version} installs and runs.`);
 } finally {
   rmSync(work, { recursive: true, force: true });
