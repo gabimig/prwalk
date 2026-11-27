@@ -209,6 +209,9 @@ export function Player({
   // The tree as the person left it, except that a step pointing at paths opens it while it lasts.
   const [treeOpen, setTreeOpen] = useTreeOpen();
   const [dismissed, setDismissed] = useState<number | null>(null);
+  // Hiding it lasts for that step only: the next time a step starts, it opens again.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: these are the triggers that reset it.
+  useEffect(() => setDismissed(null), [state.step, jumps, script]);
   const forced = step !== undefined && pointsAtPaths(step) && dismissed !== state.step;
   const treeShown = treeOpen || forced;
   const toggleTree = () => {

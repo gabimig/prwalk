@@ -87,6 +87,11 @@ test('the button hides and shows the tree, which starts closed below 720 px', as
 
   await page.getByRole('button', { name: '2. rateLimiter · estructura' }).click();
   await expect(tree(page)).toBeHidden();
+  // Back on the summary, it opens on its own again.
+  await page.getByRole('button', { name: '1. Resumen' }).click();
+  await expect(tree(page)).toBeVisible();
+  await page.getByRole('button', { name: '2. rateLimiter · estructura' }).click();
+  await expect(tree(page)).toBeHidden();
 
   await page.getByRole('button', { name: 'Enseñar los ficheros' }).click();
   await expect(tree(page)).toBeVisible();
