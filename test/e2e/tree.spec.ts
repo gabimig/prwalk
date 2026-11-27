@@ -64,6 +64,39 @@ test('a card sentence with a path lights that folder and the item that names it'
   await expect(page.locator('.card li.lit')).toHaveText(/^src\/auth/);
 });
 
+test('the tree scrolls to show the folder a card sentence lights', async ({ page }) => {
+  // Short enough that only the first rows of the tree fit, and test/auth starts below them.
+  await page.setViewportSize({ width: 1000, height: 320 });
+  const daemon = await startDaemon();
+  await daemon.send('PUT', '/api/script', {
+    version: 1,
+    lang: 'es',
+    level: 'overview',
+    steps: [
+      {
+        id: 'tests',
+        title: 'Tests',
+        card: { heading: 'Los tests', items: [{ title: 'test/auth', text: 'Tests.' }] },
+        say: [{ text: 'Los tests de la clase nueva están en test/auth.', path: 'test/auth' }],
+      },
+    ],
+  });
+  await openAndStart(page, daemon, 1);
+
+  await expect(row(page, 'test/auth')).toHaveAttribute('data-lit', 'true');
+  const panel = page.locator('.tree-panel');
+  // The folder and the file in it are both lit, and both inside the visible part of the panel.
+  await expect
+    .poll(async () => {
+      const box = await panel.boundingBox();
+      const folder = await row(page, 'test/auth').locator('.row').first().boundingBox();
+      const file = await row(page, 'test/auth/rateLimiter.test.ts').locator('.row').boundingBox();
+      if (box === null || folder === null || file === null) return false;
+      return folder.y >= box.y && file.y + file.height <= box.y + box.height;
+    })
+    .toBe(true);
+});
+
 test('clicking a file in the tree shows it and pauses; playing again goes back to the step', async ({
   page,
 }) => {
