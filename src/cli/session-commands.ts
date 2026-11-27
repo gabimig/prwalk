@@ -78,7 +78,7 @@ export async function openCommand(
   ];
   if (update !== undefined) {
     lines.push(
-      `prwalk ${update.latest} is available (installed: ${update.current}). Ask the user whether to run prwalk update.`,
+      `prwalk ${update.latest} is available (installed: ${update.current}); see "Updates" in prwalk skill.`,
     );
   }
   print(

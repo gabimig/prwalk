@@ -106,7 +106,9 @@ describe('prwalk skill', { timeout: 30_000 }, () => {
     const patch = fileURLToPath(new URL('../../test/fixtures/example.diff', import.meta.url));
     try {
       const opened = prwalk.with({ ...on, PRWALK_PORT: '0' }, 'open', '--patch', patch);
-      expect(opened.stdout).toContain(`\nprwalk 99.0.0 is available (installed: ${version}).`);
+      expect(opened.stdout).toContain(
+        `\nprwalk 99.0.0 is available (installed: ${version}); see "Updates" in prwalk skill.`,
+      );
       const json = JSON.parse(
         prwalk.with({ ...on, PRWALK_PORT: '0' }, 'open', '--patch', patch, '--json').stdout,
       );
