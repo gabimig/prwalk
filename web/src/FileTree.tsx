@@ -2,6 +2,7 @@ import { type CSSProperties, useEffect, useMemo, useRef, useState } from 'react'
 import type { DiffFile } from '../../src/shared/diff.js';
 import { pathTargets, type TreeNode } from '../../src/shared/tree.js';
 import { useTexts } from './i18n.js';
+import { scrollBehavior, scrollToShow } from './scroll.js';
 
 // Icons drawn after GitHub's Octicons (MIT), inline so the page loads nothing more.
 const FOLDER =
@@ -32,7 +33,7 @@ type Props = {
 
 /**
  * The changed files beside the diff, like GitHub's file tree: folders fold with a click, the
- * current file is marked and kept in view, and the paths a card points at are lit. Keyboard: the
+ * current file is marked and kept in view, and the paths a card points at are lit and scrolled to. Keyboard: the
  * arrows move and fold, Enter or Space opens; while focus is in it the player's shortcuts wait.
  */
 export function FileTree({ nodes, current, light, onOpen }: Props) {
@@ -63,21 +64,43 @@ export function FileTree({ nodes, current, light, onOpen }: Props) {
     });
   }, [current, lit]);
 
-  // Scroll the tree itself (not the page) so the current file is in view.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: unfolding moves the row, so scroll again.
+  // Scroll the tree itself (not the page) so the current file is in view, or else what is lit:
+  // from its first row in tree order, the whole of it if it fits. Again if the panel changes size,
+  // as it does while the page around it settles.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: unfolding moves the rows, so scroll again.
   useEffect(() => {
     const box = container.current;
-    if (box === null || current === undefined) return;
-    const frame = requestAnimationFrame(() => {
-      const element = box.querySelector(`[data-id="${CSS.escape(`file:${current}`)}"] > .row`);
-      if (!(element instanceof HTMLElement)) return;
-      const top = element.getBoundingClientRect().top - box.getBoundingClientRect().top;
-      if (top < 0 || top + element.offsetHeight > box.clientHeight) {
-        box.scrollTo({ top: box.scrollTop + top - box.clientHeight / 2, behavior: 'smooth' });
-      }
+    if (box === null || (current === undefined && lit.size === 0)) return;
+    const selector =
+      current === undefined
+        ? '[data-lit] > .row'
+        : `[data-id="${CSS.escape(`file:${current}`)}"] > .row`;
+    const reveal = () => {
+      const rows = [...box.querySelectorAll<HTMLElement>(selector)];
+      const first = rows[0];
+      const last = rows[rows.length - 1];
+      if (first === undefined || last === undefined) return;
+      const offset = box.scrollTop - box.getBoundingClientRect().top;
+      const top = scrollToShow(
+        { top: box.scrollTop, bottom: box.scrollTop + box.clientHeight },
+        {
+          top: first.getBoundingClientRect().top + offset,
+          bottom: last.getBoundingClientRect().bottom + offset,
+        },
+      );
+      if (top !== undefined) box.scrollTo({ top, behavior: scrollBehavior() });
+    };
+    let frame = requestAnimationFrame(reveal);
+    const resized = new ResizeObserver(() => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(reveal);
     });
-    return () => cancelAnimationFrame(frame);
-  }, [current, collapsed]);
+    resized.observe(box);
+    return () => {
+      cancelAnimationFrame(frame);
+      resized.disconnect();
+    };
+  }, [current, lit, collapsed]);
 
   const visible = useMemo(() => visibleRows(nodes, collapsed), [nodes, collapsed]);
   const tabStop = visible.some((row) => row.node.id === focused)
