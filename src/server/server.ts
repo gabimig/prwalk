@@ -186,15 +186,21 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
 
   /** The newer version found by the last check, told to every viewer. */
   let update: ViewerUpdate | undefined;
+  /** The check under way: an open while it runs does not start another one. */
+  let checking: Promise<void> | undefined;
   const checkUpdate = () => {
-    options
+    if (checking !== undefined) return;
+    checking = options
       .checkUpdate?.()
       .then((found) => {
         if (found === undefined || found.latest === update?.latest) return;
         update = found;
         broadcast({ type: 'update', update });
       })
-      .catch((error: unknown) => log(`update check: ${messageOf(error)}`));
+      .catch((error: unknown) => log(`update check: ${messageOf(error)}`))
+      .finally(() => {
+        checking = undefined;
+      });
   };
 
   const viewers = new WebSocketServer({ noServer: true, maxPayload: MAX_VIEWER_MESSAGE_BYTES });

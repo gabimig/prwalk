@@ -105,6 +105,15 @@ describe('checkForUpdate', () => {
     });
 
     expect(update).toBeUndefined();
+    // The failure counts as the day's check: no more requests until it is a day old.
+    const { fetch, requests } = redirectTo('v0.3.0');
+    const later = { home, current: '0.1.2', env, fetch };
+    expect(await checkForUpdate({ ...later, now: NOW + DAY - 1 })).toBeUndefined();
+    expect(requests).toEqual([]);
+    expect(await checkForUpdate({ ...later, now: NOW + DAY })).toEqual({
+      current: '0.1.2',
+      latest: '0.3.0',
+    });
   });
 
   it('neither asks nor reads the file with PRWALK_UPDATE_CHECK=0', async () => {

@@ -76,27 +76,32 @@ const checkPath = (home: string) => join(home, 'update-check.json');
 
 const disabled = (env: NodeJS.ProcessEnv) => env.PRWALK_UPDATE_CHECK === '0';
 
-type Saved = { checkedAt: number; latest: string };
+/** `latest` is null when no check has told it yet: a failed one still counts as the day's check. */
+type Saved = { checkedAt: number; latest: string | null };
 
 function readSaved(home: string): Saved | undefined {
   try {
     const saved = JSON.parse(readFileSync(checkPath(home), 'utf8')) as Partial<Saved>;
-    if (typeof saved.checkedAt !== 'number' || typeof saved.latest !== 'string') return undefined;
+    if (typeof saved.checkedAt !== 'number') return undefined;
+    if (typeof saved.latest !== 'string' && saved.latest !== null) return undefined;
     return { checkedAt: saved.checkedAt, latest: saved.latest };
   } catch {
     return undefined;
   }
 }
 
+/** Saves the check, if it can: a home it cannot write to only means asking again next time. */
 function save(home: string, saved: Saved): void {
-  ensureHome(home);
-  const path = checkPath(home);
-  writeFileSync(path, `${JSON.stringify(saved)}\n`, { mode: 0o600 });
-  chmodSync(path, 0o600);
+  try {
+    ensureHome(home);
+    const path = checkPath(home);
+    writeFileSync(path, `${JSON.stringify(saved)}\n`, { mode: 0o600 });
+    chmodSync(path, 0o600);
+  } catch {}
 }
 
-const newer = (current: string, latest: string | undefined): UpdateInfo | undefined =>
-  latest !== undefined && isNewer(latest, current) ? { current, latest } : undefined;
+const newer = (current: string, latest: string | null | undefined): UpdateInfo | undefined =>
+  typeof latest === 'string' && isNewer(latest, current) ? { current, latest } : undefined;
 
 export type CheckOptions = {
   home: string;
@@ -107,19 +112,26 @@ export type CheckOptions = {
 
 /**
  * The latest released version: from `<home>/update-check.json` while it is less than a day old
- * (unless `fresh`), otherwise from GitHub, saving the answer. Throws, saying why, if GitHub
- * cannot tell.
+ * (unless `fresh`), otherwise from GitHub, saving the answer. A failed request is saved too, keeping
+ * the version known before, so GitHub is asked at most once a day either way. Throws, saying why,
+ * if it cannot tell.
  */
 export async function latestVersion(options: CheckOptions & { fresh?: boolean }): Promise<string> {
   const { home, now = Date.now() } = options;
-  const saved = options.fresh ? undefined : readSaved(home);
-  if (saved !== undefined && now - saved.checkedAt >= 0 && now - saved.checkedAt < CHECK_EVERY_MS) {
+  const saved = readSaved(home);
+  const age = saved === undefined ? -1 : now - saved.checkedAt;
+  if (!options.fresh && saved !== undefined && age >= 0 && age < CHECK_EVERY_MS) {
+    if (saved.latest === null) throw new Error('the last check, less than a day ago, failed');
     return saved.latest;
   }
-  const latest = await fetchLatestVersion(options.fetch, options.timeoutMs);
+  let latest: string;
   try {
-    save(home, { checkedAt: now, latest });
-  } catch {}
+    latest = await fetchLatestVersion(options.fetch, options.timeoutMs);
+  } catch (error) {
+    save(home, { checkedAt: now, latest: saved?.latest ?? null });
+    throw error;
+  }
+  save(home, { checkedAt: now, latest });
   return latest;
 }
 
