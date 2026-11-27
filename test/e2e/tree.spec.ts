@@ -87,3 +87,21 @@ test('the button hides and shows the tree, which starts closed below 720 px', as
   await page.getByRole('button', { name: 'Ocultar los ficheros' }).click();
   await expect(tree(page)).toBeHidden();
 });
+
+test('with browser storage blocked the tree still starts by width and the button still works', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    const blocked = () => {
+      throw new Error('SecurityError: storage is blocked');
+    };
+    Object.defineProperty(window, 'localStorage', { get: blocked });
+  });
+  const daemon = await startDaemon();
+  await openAndStart(page, daemon, 1);
+  await page.getByRole('button', { name: '2. rateLimiter · estructura' }).click();
+  await expect(tree(page)).toBeVisible();
+
+  await page.getByRole('button', { name: 'Ocultar los ficheros' }).click();
+  await expect(tree(page)).toBeHidden();
+});
