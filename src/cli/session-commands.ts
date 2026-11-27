@@ -1,5 +1,6 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 import { prwalkHome } from '../server/state.js';
+import { installedVersion, savedUpdate } from '../server/updates.js';
 import {
   type DiffFile,
   type DiffIndex,
@@ -69,10 +70,21 @@ export async function openCommand(
   if (reply.status !== 200) throw unexpectedReply(reply);
   const { meta, index } = reply.body as SessionView;
   const totals = countChanges(index);
+  // From the last check saved: the daemon asks again in the background.
+  const update = savedUpdate(prwalkHome(), installedVersion());
+  const lines = [
+    `Opened ${describeSource(meta)}: ${plural(totals.files, 'file')}, +${totals.additions} -${totals.deletions}`,
+    `Viewer: ${daemon.url}`,
+  ];
+  if (update !== undefined) {
+    lines.push(
+      `prwalk ${update.latest} is available (installed: ${update.current}). Ask the user whether to run prwalk update.`,
+    );
+  }
   print(
     options,
-    { ok: true, meta, ...totals, url: daemon.url },
-    `Opened ${describeSource(meta)}: ${plural(totals.files, 'file')}, +${totals.additions} -${totals.deletions}\nViewer: ${daemon.url}`,
+    { ok: true, meta, ...totals, url: daemon.url, ...(update !== undefined && { update }) },
+    lines.join('\n'),
   );
 }
 

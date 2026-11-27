@@ -202,7 +202,7 @@ const skill = program
   .description(
     "Print the full guide for agents: how to give a walkthrough with prwalk, then the user's preferences.",
   )
-  .action(action(async () => printGuide()));
+  .action(action(printGuide));
 
 skill
   .command('install')
