@@ -62,6 +62,18 @@ describe('validateScript', () => {
     ]);
   });
 
+  it('allows a path only in card steps, as a repository path without a trailing slash', () => {
+    const input = exampleCopy();
+    input.steps[1]?.say.push({ text: 'This folder.', path: 'src/auth' });
+    const card = input.steps[0] as { card: { items: Array<{ path?: string }> } };
+    if (card.card.items[0] === undefined) throw new Error('fixture changed');
+    card.card.items[0].path = 'src/auth/';
+    expect(errorsOf(input)).toEqual([
+      'steps[0] (id "overview") card.items[0].path: must be a path from the root of the repository, like "src/auth" or "src/auth/login.ts", with no leading or trailing "/", got "src/auth/"',
+      'steps[1] (id "limiter-structure") say[3].path: only allowed in steps with "card": the file of a step with "focus" is highlighted in the tree on its own',
+    ]);
+  });
+
   it('allows a note only in steps with focus', () => {
     const input = exampleCopy();
     input.steps[0] = { ...input.steps[0], note: 'Summary' } as never;
