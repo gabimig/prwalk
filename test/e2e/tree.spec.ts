@@ -120,7 +120,7 @@ test('with browser storage blocked the tree still starts by width and the button
     const blocked = () => {
       throw new Error('SecurityError: storage is blocked');
     };
-    Object.defineProperty(window, 'localStorage', { get: blocked });
+    Object.defineProperty(globalThis, 'localStorage', { get: blocked });
   });
   const daemon = await startDaemon();
   await openAndStart(page, daemon, 1);
