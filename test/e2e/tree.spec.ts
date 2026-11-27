@@ -97,6 +97,12 @@ test('the button hides and shows the tree, which starts closed below 720 px', as
   await expect(tree(page)).toBeVisible();
   await page.getByRole('button', { name: 'Ocultar los ficheros' }).click();
   await expect(tree(page)).toBeHidden();
+
+  // The choice is remembered over the width of the page.
+  await page.getByRole('button', { name: 'Enseñar los ficheros' }).click();
+  await page.reload();
+  await expect(who(page)).toHaveText(/paso 2/);
+  await expect(tree(page)).toBeVisible();
 });
 
 test('with browser storage blocked the tree still starts by width and the button still works', async ({
