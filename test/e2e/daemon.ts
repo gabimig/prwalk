@@ -38,7 +38,7 @@ export async function startDaemon(
 ): Promise<Daemon> {
   const home = tempDir();
   if (config !== undefined) writeFileSync(join(home, 'config.json'), JSON.stringify(config));
-  const env = { ...process.env, PRWALK_HOME: home };
+  const env: NodeJS.ProcessEnv = { ...process.env, PRWALK_HOME: home };
   if (latest !== undefined) {
     writeFileSync(
       join(home, 'update-check.json'),
