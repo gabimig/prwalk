@@ -5,9 +5,9 @@ import { checkScriptAgainstDiff } from './check-script.js';
 import { buildDiffIndex } from './diff.js';
 import { type Script, validateScript } from './script.js';
 
-const index = buildDiffIndex(
-  readFileSync(new URL('../../test/fixtures/example.diff', import.meta.url), 'utf8'),
-);
+const fixture = (name: string) =>
+  buildDiffIndex(readFileSync(new URL(`../../test/fixtures/${name}`, import.meta.url), 'utf8'));
+const index = fixture('example.diff');
 
 function exampleScript(): Script {
   const result = validateScript(structuredClone(example));
@@ -39,5 +39,36 @@ describe('checkScriptAgainstDiff', () => {
       'steps[4] (id "controller-failure-success") say[1].lines: Lines 40-41 of src/auth/loginController.ts are not inside one hunk of the new side. Ranges on the new side: 12-29.',
       'steps[5] (id "config") focus: "src/config/missing.ts" is not in the diff. Files in the diff: src/auth/rateLimiter.ts, src/auth/loginController.ts, src/config/auth.ts, test/auth/rateLimiter.test.ts',
     ]);
+  });
+
+  it('reports a card path that names no file or folder of the diff, with similar ones', () => {
+    const script = exampleScript();
+    const overview = script.steps[0];
+    if (overview?.card === undefined) throw new Error('fixture changed');
+    overview.card.items[0] = { title: 'Auth', path: 'src/aut' };
+    overview.say[2] = { text: 'And the tests.', path: 'tests' };
+
+    expect(checkScriptAgainstDiff(script, index)).toEqual([
+      'steps[0] (id "overview") card.items[0].path: "src/aut" is not a file or folder of the diff. Similar paths: src/auth, src, test/auth',
+      'steps[0] (id "overview") say[2].path: "tests" is not a file or folder of the diff. Similar paths: test, src, test/auth',
+    ]);
+  });
+
+  it('accepts a card path that is a folder of the diff, or the old path of a renamed file', () => {
+    const result = validateScript({
+      version: 1,
+      lang: 'en',
+      level: 'overview',
+      steps: [
+        {
+          id: 'summary',
+          title: 'Summary',
+          card: { heading: 'What changes', items: [{ title: 'Sources', path: 'src' }] },
+          say: [{ text: 'The file that was renamed.', path: 'src/name.ts' }],
+        },
+      ],
+    });
+    if (!result.ok) throw new Error(result.errors.join('\n'));
+    expect(checkScriptAgainstDiff(result.script, fixture('sample.diff'))).toEqual([]);
   });
 });
