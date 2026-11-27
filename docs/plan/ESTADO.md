@@ -2,6 +2,12 @@
 
 Bitácora del proyecto, lo más reciente arriba.
 
+## 27/11/2026 · Tareas 10 y 11
+
+- **Tarea 10:** [#2](https://github.com/gabimig/prwalk/pull/2), mergeada y publicada como 0.1.1. Las preferencias del usuario viven en `<PRWALK_HOME>/preferences.md`; `prwalk skill` imprime la guía y detrás las preferencias, y `prwalk preferences` las enseña, da su ruta o las restablece.
+- **Tarea 11:** árbol de ficheros a la izquierda del diff (el fichero en curso se marca; un botón lo oculta, y empieza oculto por debajo de 720 px). Los pasos de tarjeta pueden señalar carpetas o ficheros con `path` en sus elementos y frases, y el árbol los ilumina mientras se nombran; `check-script` rechaza rutas que no están en el diff y sugiere parecidas. La guía pide presentar el resumen por zonas. Versión 0.2.0.
+- **Siguiente paso:** revisar la PR de la tarea 11; la etiqueta y la publicación las hace la sesión coordinadora.
+
 
 ## 26/11/2026 · Tarea 09 mergeada, licencia GPL y repositorio limpio
 

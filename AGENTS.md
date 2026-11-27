@@ -9,10 +9,11 @@ Planning docs (in Spanish) live in `docs/plan/`: start with `docs/plan/ESTADO.md
 ## Requirements (agreed with the user)
 
 - **Diff source:** a GitHub PR by number or URL (through `gh`, private repos included) or local git changes (branch vs base) without a PR.
-- **Walkthrough shape:** high-level summary, then files in a logical order with the explained range highlighted, then the tests at a high level. Three levels of detail: overview only, key files, full. The agent picks the level from what the user asks.
+- **Walkthrough shape:** high-level summary, presented by zones of the repository, then files in a logical order with the explained range highlighted, then the tests at a high level. Three levels of detail: overview only, key files, full. The agent picks the level from what the user asks.
 - **Scripted but live:** the agent prepares the whole script up front and the page plays it with no gaps. The agent can still answer questions, jump, or rewrite the remaining steps at any time.
 - **Controls in the page:** play/pause, previous step, next step, restart step, restart walkthrough, clickable step strip. Shortcuts: Space, ←, →, R. Everything else (questions, "skip this", "more detail") goes through the agent's chat. No text box and no microphone in the page.
 - **History panel:** everything said so far, grouped by step, scrollable; it grows while paused.
+- **File tree:** the changed files, by folder, always on the left of the diff (a button hides it; hidden by default below 720 px). The file being explained is marked. Card steps may point at folders or files (`path` on an item or a sentence) and the tree lights them while they are named.
 - **Voice:** spoken by the page, not by the agent, with a silence after each sentence and a longer one between steps. Local by default: the browser's Web Speech API. Any other engine plugs in as a voice adapter (an ES module the daemon loads from the path in `config.json`); a cloud voice only if the user plugs in their own adapter for one. The narration language is the language the user speaks to the agent.
 - **Agent-agnostic:** a small skill plus the CLI. No MCP server. The skill stub must stay tiny; the full guide is printed by the CLI.
 - **Privacy:** code and narration never leave the machine (other than what `gh` already does, and what a cloud voice adapter the user chose sends).
@@ -26,7 +27,8 @@ One npm package, ESM, TypeScript strict, Node >= 22, pnpm.
 src/shared/   Pure TypeScript, no Node or browser APIs; imported by everything else.
   script.ts        Script schema and validation (zod).
   diff.ts          Diff index (files, hunks, line ranges) and focus checks, on @pierre/diffs.
-  check-script.ts  A script checked against the diff.
+  check-script.ts  A script checked against the diff (ranges and card paths).
+  tree.ts          The changed files as a folder tree, and the rows a path in a script lights.
   playback.ts      The playback reducer: what start, pause, next, goto... do.
   events.ts        Events derived from position reports (paused, jumped, finished...).
   protocol.ts      Daemon <-> viewer messages and the bodies of the HTTP API.
@@ -59,10 +61,11 @@ src/cli/      The `prwalk` binary. Thin: parses arguments, starts the daemon if 
   sources/         Where a diff comes from: github (gh), local (git), patch (a file).
 web/          Viewer (Vite + React), built into dist/web and served by the daemon.
   connection.ts    WebSocket and API calls to the daemon.
-  App.tsx, Player.tsx, FileView.tsx, VoicePicker.tsx   The page; FileView renders with
-                   @pierre/diffs.
+  App.tsx, Player.tsx, FileView.tsx, FileTree.tsx, VoicePicker.tsx   The page; FileView
+                   renders with @pierre/diffs, FileTree is the file tree on the left.
   playback/        PlaybackEngine (runs the shared reducer with a voice, and the pauses), the
-                   queue of answers said aside, the history, the focus of each sentence.
+                   queue of answers said aside, the history, the focus of each sentence and the
+                   paths a card lights.
   voice/           Voice providers: the VoiceProvider interface, Web Speech (local voices
                    only, with the voice and speed choice), the remote voice (audio from the
                    daemon's adapter), the silent fallback.
