@@ -34,6 +34,14 @@ test('the tree shows the files of the diff and marks the file of the current ste
   await expect(tree(page).locator('[aria-current="true"]')).toHaveAccessibleName(
     'src/config/auth.ts',
   );
+
+  // A click folds a folder; it unfolds again when the current file is inside it.
+  await row(page, 'src/auth').locator('.row').first().click();
+  await expect(row(page, 'src/auth')).toHaveAttribute('aria-expanded', 'false');
+  await expect(row(page, 'src/auth/loginController.ts')).toHaveCount(0);
+  await page.getByRole('button', { name: '4. loginController · bloqueo' }).click();
+  await expect(row(page, 'src/auth')).toHaveAttribute('aria-expanded', 'true');
+  await expect(row(page, 'src/auth/loginController.ts')).toHaveAttribute('aria-current', 'true');
 });
 
 test('a card sentence with a path lights that folder and the item that names it', async ({
