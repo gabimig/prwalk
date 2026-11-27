@@ -15,7 +15,8 @@ Cada tarea es una rama, una PR en borrador y un entregable que se puede comproba
 | 07 | `[x]` | Proveedores de voz enchufables y pausas | [plan](tareas/07-plan-voces-enchufables-y-pausas.md) | https://github.com/gabimig/prwalk/pull/7 |
 | 08 | `[x]` | Voz local recomendada, instalable con un comando | [plan](tareas/08-plan-voz-local-recomendada.md) | [PR #8](https://github.com/gabimig/prwalk/pull/8) |
 | 09 | `[x]` | Repositorio público y versión 0.1 | [plan](tareas/09-plan-version-publica.md) | https://github.com/gabimig/prwalk/pull/9 |
-| 10 | `[~]` | Preferencias del usuario | [plan](tareas/10-plan-preferencias-del-usuario.md) | https://github.com/gabimig/prwalk/pull/2 |
+| 10 | `[x]` | Preferencias del usuario | [plan](tareas/10-plan-preferencias-del-usuario.md) | https://github.com/gabimig/prwalk/pull/2 |
+| 12 | `[ ]` | Aviso de versión nueva y `prwalk update` | [plan](tareas/12-plan-aviso-de-version-nueva.md) | |
 
 ## 01 · Esqueleto y contrato
 
